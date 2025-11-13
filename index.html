@@ -30,6 +30,20 @@ Thanks in advance: Any contribution will get corresponding rewards.e,g,[come-in2
     </div> 
 
     <script>
+      let img1 = null, img2 = null, videoBlob = null;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const video = document.getElementById('result');
+
+        // === Face 1 ===
+        function loadPrompt() {
+            const t = "粉紅比基尼，陽光下跳水，水花四濺，濕髮甩動，開心大笑，夏日氛圍, smooth motion, water droplets, 4K";
+            document.getElementById('prompt').value = t;
+            showPrompt(t);
+        }
+        function showPrompt(t) {
+            document.getElementById('promptOut').innerHTML = `<b>提示：</b><br><code style="background:#ffeef8;padding:8px;border-radius:8px;display:block;font-size:13px;">${t}</code>`;
+        }
 function toGitHub() {
 const m = document.getElementById('msg').value.trim();
 if (!m) return alert("請輸入留言！");
@@ -37,5 +51,12 @@ window.open(https://github.com/adm-shit/test/issues/new?title=22k留言&body=${e
 document.getElementById('status').innerHTML = "已開啟 GitHub！";
 }
       
-       
+        // 啟動
+        window.onload = () => {
+            loadPrompt();
+            // 強制綁定 label
+            document.querySelectorAll('.upload-label').forEach(label => {
+                label.addEventListener('click', e => e.stopPropagation());
+            });
+        };
     </script>  </body></html>
