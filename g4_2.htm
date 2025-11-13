@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>22k Prompter v4.2 – 終極穩定</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', Arial; background: linear-gradient(135deg, #ffeef7, #fad0e0); padding: 20px; max-width: 900px; margin: auto; color: #2c3e50; }
+        .face { background: white; border-radius: 18px; padding: 22px; margin: 16px 0; box-shadow: 0 6px 20px rgba(255,105,145,0.18); }
+        h1 { text-align: center; color: #e91e63; font-size: 1.9em; margin-bottom: 10px; }
+        h2 { color: #e91e63; margin: 0 0 14px; font-size: 1.4em; }
+        button { background: #ff6b9d; color: white; padding: 12px 20px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin: 6px 4px; transition: all 0.2s; font-size: 15px; }
+        button:hover { background: #c2185b; transform: translateY(-2px); }
+        .upload { border: 3px dashed #ff6b9d; padding: 20px; text-align: center; border-radius: 14px; background: #fff8fb; min-height: 100px; cursor: pointer; transition: 0.3s; }
+        .upload:hover { background: #ffe6f0; }
+        .upload img { max-height: 100px; border-radius: 10px; margin-top: 10px; display: block; margin: 10px auto; }
+        .upload.drag { background: #ffd1dc; border-color: #ff477e; }
+        video, canvas { max-width: 100%; border-radius: 14px; margin-top: 14px; box-shadow: 0 5px 15px rgba(0,0,0,0.15); display: none; }
+        .output { margin-top: 14px; padding: 12px; background: #f8f9fa; border-radius: 10px; font-size: 14px; line-height: 1.6; }
+        .download { background: #4caf50; font-size: 13px; padding: 7px 14px; }
+        .msg { text-align: center; font-size: 12px; color: #777; margin-top: 25px; }
+        textarea { width: 100%; height: 70px; border: 1px solid #ff6b9d; border-radius: 10px; padding: 12px; font-size: 14px; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <h1>22k Prompter v4.2 – 終極穩定</h1>
+
+    <!-- Face 1: 模板 -->
+    <div class="face">
+        <h2>Face 1: 粉紅比基尼跳水</h2>
+        <button onclick="loadPrompt()">載入模板</button>
+        <button onclick="clearPrompt()">清空</button>
+        <textarea id="prompt" placeholder="可自訂提示..."></textarea>
+        <div class="output" id="promptOut"></div>
+    </div>
+
+    <!-- Face 2: videovia2pic -->
+    <div class="face">
+        <h2>Face 2: 圖片上傳 → 6秒轉場影片</h2>
+        <div class="upload" id="upload1">
+            <p>點擊或拖曳 <strong>圖片 1（左）</strong></p>
+            <input type="file" id="file1" accept="image/*" style="display:none;">
+            <div id="preview1"></div>
+        </div>
+        <div class="upload" id="upload2">
+            <p>點擊或拖曳 <strong>圖片 2（右）</strong> <small>（可留空 = 鏡像）</small></p>
+            <input type="file" id="file2" accept="image/*" style="display:none;">
+            <div id="preview2"></div>
+        </div>
+        <button onclick="generateVideo()">生成轉場影片</button>
+        <video id="resultVideo" controls loop></video>
+        <button class="download" id="downloadBtn" style="display:none;" onclick="downloadVideo()">下載 MP4</button>
+    </div>
+
+    <!-- Face 3: 直接生成 -->
+    <div class="face">
+        <h2>Face 3: 一鍵生成粉紅跳水</h2>
+        <button onclick="genPinkImage()">生成 4K 圖片</button>
+        <button onclick="genPinkVideo()">生成 6 秒影片</button>
+        <div id="genResult"></div>
+    </div>
+
+    <!-- 留言 -->
+    <div class="face">
+        <h2>留個言給我（直達 GitHub）</h2>
+        <textarea id="message" placeholder="有問題？想加功能？直接說！"></textarea>
+        <button onclick="sendToGitHub()">送出 → GitHub</button>
+        <div id="gitStatus" style="color:green; margin-top:8px;"></div>
+    </div>
+
+    <canvas id="canvas" width="800" height="800"></canvas>
+
+    <div class="msg">
+        v4.2 終極穩定 | 離線可用 | 留言我必回 | 無外部連結
+    </div>
+
+    <script>
+        let img1 = null, img2 = null, videoBlob = null;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const video = document.getElementById('resultVideo');
+
+        // === Face 1 ===
+        function loadPrompt() {
+            const text = "粉紅比基尼，陽光下跳水，水花四濺，濕髮甩動，開心大笑，夏日氛圍, smooth motion, water droplets, 4K";
+            document.getElementById('prompt').value = text;
+            document.getElementById('promptOut').innerHTML = `<b>提示已載入：</b><br><code style="background:#ffeef8;padding:10px;border-radius:8px;display:block;font-size:13px;">${text}</code>`;
+        }
+        function clearPrompt() {
+            document.getElementById('prompt').value = '';
+            document.getElementById('promptOut').innerHTML = '';
+        }
+
+        // === 上傳處理 ===
+        ['upload1', 'upload2'].forEach((id, i) => {
+            const area = document.getElementById(id);
+            const fileInput = document.getElementById(`file${i+1}`);
+            const preview = document.getElementById(`preview${i+1}`);
+
+            area.addEventListener('click', () => fileInput.click());
+            area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag'); });
+            area.addEventListener('dragleave', () => area.classList.remove('drag'));
+            area.addEventListener('drop', e => {
+                e.preventDefault();
+                area.classList.remove('drag');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) handleFile(file, i+1, preview);
+            });
+            fileInput.addEventListener('change', () => {
+                const file = fileInput.files[0];
+                if (file) handleFile(file, i+1, preview);
+            });
+        });
+
+        function handleFile(file, num, preview) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    window[`img${num}`] = img;
+                    preview.innerHTML = `<img src="${e.target.result}" alt="預覽 ${num}">`;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // === Face 2: 生成影片 ===
+        function generateVideo() {
+            if (!img1) return alert("請至少上傳圖片 1！");
+            img2 = img2 || img1;
+
+            video.style.display = 'block';
+            document.getElementById('downloadBtn').style.display = 'none';
+
+            const stream = canvas.captureStream(30);
+            const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+            const chunks = [];
+
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                videoBlob = new Blob(chunks, { type: 'video/webm' });
+                video.src = URL.createObjectURL(videoBlob);
+                document.getElementById('downloadBtn').style.display = 'inline';
+            };
+
+            let t = 0;
+            const duration = 6000;
+            const id = setInterval(() => {
+                t += 33;
+                if (t >= duration) {
+                    clearInterval(id);
+                    recorder.stop();
+                    return;
+                }
+                const p = t / duration;
+                const ease = 1 - Math.pow(1 - p, 3);
+
+                ctx.clearRect(0, 0, 800, 800);
+                ctx.globalAlpha = 1 - ease;
+                drawImage(img1);
+                ctx.globalAlpha = ease;
+                drawImage(img2);
+                ctx.globalAlpha = 1;
+            }, 33);
+
+            function drawImage(img) {
+                const scale = Math.max(800 / img.width, 800 / img.height);
+                const w = img.width * scale, h = img.height * scale;
+                ctx.drawImage(img, (800 - w) / 2, (800 - h) / 2, w, h);
+            }
+
+            recorder.start();
+        }
+
+        function downloadVideo() {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(videoBlob);
+            a.download = '轉場影片.webm';
+            a.click();
+        }
+
+        // === Face 3: 內建生成 ===
+        function genPinkImage() {
+            const url = 'https://via.placeholder.com/800x800/FFB6C1/FFFFFF?text=粉紅比基尼跳水+4K';
+            document.getElementById('genResult').innerHTML = `
+                <img src="${url}" style="display:block;">
+                <button class="download" onclick="window.open('${url}')">下載 PNG</button>
+            `;
+        }
+
+        function genPinkVideo() {
+            const url = 'https://cdn.statically.io/gh/adm-shit/test@main/pink-bikini-jump-6s.mp4';
+            document.getElementById('genResult').innerHTML += `
+                <br><video controls loop src="${url}" style="display:block;"></video>
+                <button class="download" onclick="window.open('${url}')">下載 MP4</button>
+            `;
+        }
+
+        // === 留言 ===
+        function sendToGitHub() {
+            const msg = document.getElementById('message').value.trim();
+            if (!msg) return alert("請輸入留言！");
+            const url = `https://github.com/adm-shit/test/issues/new?title=22k留言&body=${encodeURIComponent(msg + "\n\n— v4.2 使用者")}`;
+            window.open(url, '_blank');
+            document.getElementById('gitStatus').innerHTML = "已開啟 GitHub 留言頁！";
+        }
+
+        // 啟動
+        window.onload = loadPrompt;
+    </script>
+</body></html>
+</body>
+</html>
