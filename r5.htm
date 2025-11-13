@@ -24,7 +24,13 @@
 </head>
 <body>
     <h1>22k Prompter v5.1 – 真·終極版</h1>
-
+<!-- 留言 -->
+    <div class="face">
+        <h2>留個言給我</h2>
+        <textarea id="msg" placeholder="bug？建議？直接說！" style="width:100%; height:50px; border-radius:8px; padding:10px; border:1px solid #ff6b9d;"></textarea>
+        <button onclick="toGitHub()">送出 → GitHub</button>
+        <div id="status" style="color:green; margin-top:8px;"></div>
+    </div> Belows faces not OK yet.
     <!-- Face 1 -->
     <div class="face">
         <h2>Face 1: 粉紅跳水 + 語音輸入</h2>
@@ -60,14 +66,6 @@
         <button onclick="genImage()">4K 圖片</button>
         <button onclick="genVideo()">6 秒影片</button>
         <div id="genOut"></div>
-    </div>
-
-    <!-- 留言 -->
-    <div class="face">
-        <h2>留個言給我</h2>
-        <textarea id="msg" placeholder="bug？建議？直接說！" style="width:100%; height:50px; border-radius:8px; padding:10px; border:1px solid #ff6b9d;"></textarea>
-        <button onclick="toGitHub()">送出 → GitHub</button>
-        <div id="status" style="color:green; margin-top:8px;"></div>
     </div>
 
     <canvas id="canvas" width="800" height="800" style="display:none;"></canvas>
@@ -212,4 +210,5 @@
         };
     </script>
 </body>
+
 </html>
