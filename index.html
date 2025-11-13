@@ -14,7 +14,6 @@ Thanks in advance: Any contribution will get corresponding rewards.e,g,[come-in2
   This[may disapeared in das/weeks?Then tell me*bottom]<a href=https://assets.grok.com/users/7dbbc5ce-2eb6-4bcd-91d8-366664422429/generated/7968e2ed-bcd7-4f19-8a29-a1ce594fd42c/generated_video.mp4?cache=1>video</a>via<a href=https://github.com/adm-shit/test/blob/main/c2.jpg>2pic</a>. How smooth!
  https://assets.grok.com/users/7dbbc5ce-2eb6-4bcd-91d8-366664422429/generated/b69fd15d-26a5-4b5f-aa0c-03bcc109fa63/generated_video_hd.mp4?cache=1 
  
-    
 很高兴 您来到这里，亲爱的！ 22k.htm 是在几十年之前 获得的便携式提示器。 
 欢迎进行尽可能的精简（剪切），但请确保 界面和功能 保持原封完整。
     
@@ -22,7 +21,14 @@ Thanks in advance: Any contribution will get corresponding rewards.e,g,[come-in2
    html skill here only 2/10 level.
     <!a href=https://github.com/adm-shit/test/blob/main/Grok5k.htm>Grok5k<!/a>/mi../<a href=https://github.com/adm-shit/test/blob/main/deepseek.7z target=_blank>dpsk</a> revised via 22k[its ori.~32k], 1&2/3 faces ok, but await finish.
     <!p欢迎 中文 gem..pt_help GitHub Pages 网站！/p></pre>
-  
+  <!-- 留言 -->
+    <div class="face">
+        <h2>留個言給我</h2>
+        <textarea id="msg" placeholder="bug？建議？直接說！" style="width:100%; height:50px; border-radius:8px; padding:10px; border:1px solid #ff6b9d;"></textarea>
+        <button onclick="toGitHub()">送出 → GitHub</button>
+        <div id="status" style="color:green; margin-top:8px;"></div>
+    </div> 
+
     <script>
 function toGitHub() {
 const m = document.getElementById('msg').value.trim();
@@ -30,11 +36,13 @@ if (!m) return alert("請輸入留言！");
 window.open(https://github.com/adm-shit/test/issues/new?title=22k留言&body=${encodeURIComponent(m + "\n\n— v5.1")}, '_blank');
 document.getElementById('status').innerHTML = "已開啟 GitHub！";
 }
-<!-- 留言 -->
-    <div class="face">
-        <h2>留個言給我</h2>
-        <textarea id="msg" placeholder="bug？建議？直接說！" style="width:100%; height:50px; border-radius:8px; padding:10px; border:1px solid #ff6b9d;"></textarea>
-        <button onclick="toGitHub()">送出 → GitHub</button>
-        <div id="status" style="color:green; margin-top:8px;"></div>
-    </div> 
+      
+        // 啟動
+        window.onload = () => {
+            loadPrompt();
+            // 強制綁定 label
+            document.querySelectorAll('.upload-label').forEach(label => {
+                label.addEventListener('click', e => e.stopPropagation());
+            });
+        };
     </script>  </body></html>
