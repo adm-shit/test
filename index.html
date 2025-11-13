@@ -24,7 +24,7 @@ Thanks in advance: Any contribution will get corresponding rewards.e,g,[come-in2
   <!-- 留言 -->
     <div class="face">
         <h2>留個言給我</h2>
-        <textarea id="msg" placeholder="bug？建議？直接說！" style="width:100%; height:50px; border-radius:8px; padding:10px; border:1px solid #ff6b9d;"></textarea>
+        <textarea id="msg" placeholder="grok.mp4?/bug？建議？直接說！" style="width:100%; height:50px; border-radius:8px; padding:10px; border:1px solid #ff6b9d;"></textarea>
         <button onclick="toGitHub()">送出 → GitHub</button>
         <div id="status" style="color:green; margin-top:8px;"></div>
     </div> 
@@ -37,12 +37,5 @@ window.open(https://github.com/adm-shit/test/issues/new?title=22k留言&body=${e
 document.getElementById('status').innerHTML = "已開啟 GitHub！";
 }
       
-        // 啟動
-        window.onload = () => {
-            loadPrompt();
-            // 強制綁定 label
-            document.querySelectorAll('.upload-label').forEach(label => {
-                label.addEventListener('click', e => e.stopPropagation());
-            });
-        };
+       
     </script>  </body></html>
