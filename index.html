@@ -19,7 +19,25 @@ Thanks in advance: Any contribution will get corresponding rewards.e,g,[come-in2
  What's more welcome= Co-op/collaborators needed.
    html skill here only 2/10 level.
     <!a href=https://github.com/adm-shit/test/blob/main/Grok5k.htm>Grok5k<!/a>/mi../<a href=https://github.com/adm-shit/test/blob/main/deepseek.7z target=_blank>dpsk</a> revised via 22k[its ori.~32k], 1&2/3 faces ok, but await finish.
-    <!p欢迎 中文 gem..pt_help GitHub Pages 网站！/p></pre>
+  </pre>
    
-  *<a href=https://adm-shit.github.io/test/r5.htm>Messages/留個言</a>給我![may sign-in 2 c]grok.mp4 failed?/bug？建議？直接說！
+<div class="face">
+        <h2>留個言給我</h2>
+        <textarea id="msg" placeholder="留言內容:grok.mp4 failed?bug？建議？" style="width:100%; height:50px; border-radius:8px; padding:10px; border:1px solid #ff6b9d;"></textarea>
+        <button onclick="toGitHub()">送出 → GitHub</button>
+        <div id="status" style="color:green; margin-top:8px;"></div>
+    </div>    <div class="msg">離線可用 | 留言直接說！- Thx Gem&rok</div>
+
+    <script>
+        // === 留言功能 ===
+        function toGitHub() {
+            const m = document.getElementById('msg').value.trim();
+            if (!m) return alert("請輸入留言！");
+            // 使用 window.open 導向到 GitHub 建立 Issue 的頁面
+            // 標題 (title) 設為 "留言" 內容 (body) 包含留言內容和版本號
+            window.open(`https://github.com/adm-shit/test/issues/new?title=留言&body=${encodeURIComponent(m + "\n\n— v5.1")}`, '_blank');            
+            document.getElementById('status').innerHTML = "已開啟 GitHub！";
+        }
+    </script>
+  *<!a href=https://adm-shit.github.io/test/r5.htm Messages/留個言/a給我![may sign-in 2 c]>
    </body></html>
