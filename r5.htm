@@ -3,24 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <title>22k Prompter 留言版</title>
+     <title>AI 视频生成器 - 演示模式</title>
     <style>
-        * { box-sizing: border-box; margin:0; padding:0; }
-        body { font-family: 'Microsoft JhengHei', sans-serif; background: #fff0f5; padding: 20px; max-width: 900px; margin: auto; }
-        .face { background: #fff; border-radius: 16px; padding: 20px; margin: 15px 0; box-shadow: 0 6px 18px rgba(255,105,145,0.15); }
-        h1 { text-align: center; color: #e91e63; font-size: 1.8em; margin-bottom: 10px; }
-        h2 { color: #e91e63; margin: 0 0 12px; font-size: 1.3em; }
-        button { background: #ff6b9d; color: white; padding: 10px 16px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin: 5px; font-size: 14px; }
-        button:hover { background: #c2185b; }
-        .upload-label { display: block; border: 3px dashed #ff6b9d; padding: 20px; text-align: center; border-radius: 14px; background: #fff8fb; cursor: pointer; margin: 10px 0; }
-        .upload-label:hover { background: #ffe6f0; }
-        .upload-label img { max-height: 100px; border-radius: 10px; margin-top: 10px; display: block; margin: 10px auto; }
-        input[type="file"] { display: none; }
-        video { max-width: 100%; border-radius: 12px; margin-top: 12px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .output { margin-top: 12px; padding: 12px; background: #f8f9fa; border-radius: 10px; font-size: 14px; }
-        .download { background: #4caf50; font-size: 13px; padding: 6px 12px; }
-        .mic { background: #ff6b9d; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; line-height: 40px; text-align: center; display: inline-block; }
-        .msg { text-align: center; font-size: 12px; color: #777; margin-top: 20px; }
+        body { font-family: 'Microsoft YaHei', sans-serif; max-width: 900px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .face { background: white; border-radius: 10px; padding: 25px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .upload-area { border: 3px dashed #ddd; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .upload-area:hover { border-color: #ff69b4; background: #fff0f8; }
+        button { background: linear-gradient(45deg, #ff69b4, #ff1493); color: white; border: none; padding: 15px 30px; font-size: 16px; cursor: pointer; border-radius: 8px; width: 100%; margin-top: 15px; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #previewVideo { width: 100%; border-radius: 8px; margin-top: 15px; }
+        .status { margin-top: 15px; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .demo-mode { background: #fff3cd; border: 2px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
     </style>
+</head>
+<body>
+<div class="demo-mode">
+    ⚠️ <strong>演示模式</strong>：當前使用本地模擬數據，無需網絡和 API 憑證。真實 API 需註冊服務。
+</div>
+<h1 style="text-align: center; color: #ff1493;">🎬 AI 视频生成器 v4.2（演示版）</h1>
+<!-- Face 2 -->
+<div class="face">
+    <h2>Face 2: 圖片上傳 → 6秒轉場影片</h2>
+    <label>圖片 1（左）：</label>
+    <div class="upload-area" onclick="document.getElementById('file1').click()">
+        <span id="label1">📸 點擊或拖曳圖片到此處</span>
+    </div>
+    <input type="file" id="file1" accept="image/*" onchange="handleFile(this, 'label1')">
+    
+    <label>圖片 2（右）：</label>
+    <div class="upload-area" onclick="document.getElementById('file2').click()">
+        <span id="label2">📸 點擊或拖曳圖片（可留空 = 鏡像）</span>
+    </div>
+    <input type="file" id="file2" accept="image/*" onchange="handleFile(this, 'label2')">    
+    <button onclick="generateDemoVideo('transition')">🎥 生成 6 秒轉場影片（演示）</button>
+    <div id="status2" class="status"></div>
+</div>
+
+<!-- Face 3 -->
+<div class="face">
+    <h2>Face 3: 一鍵生成粉紅跳水</h2>
+    <button onclick="generateDemoVideo('diving')">🎬 一鍵生成粉紅跳水（演示）</button>
+    <div id="status3" class="status"></div>
+</div>
+
+<!-- 預覽區域 -->
+<div class="face" id="previewSection" style="display: none;">
+    <h2>🎞️ 演示影片</h2>
+    <video id="previewVideo" controls style="width: 100%; border-radius: 8px;"></video>
+    <p style="color: #666; margin-top: 10px;">
+        💡 提示：這是預設的演示視頻。使用真實 API 後將顯示實際生成的內容。
+    </p>
+</div>
+
+<script>
+// ===== 演示模式：使用預設視頻 =====
+const DEMO_VIDEOS = {
+    transition: 'https://www.w3schools.com/html/mov_bbb.mp4', // 示例轉場視頻
+    diving: 'https://www.w3schools.com/html/mov_bbb.mp4'      // 示例跳水視頻
+};
+
+function handleFile(input, labelId) {
+    const file = input.files[0];
+    if (file) {
+        document.getElementById(labelId).textContent = `✅ 已選擇: ${file.name}`;
+    }
+}
+
+async function generateDemoVideo(type) {
+    const button = event.target;
+    const statusId = type === 'transition' ? 'status2' : 'status3';
+    
+    button.disabled = true;
+    showStatus(statusId, '🎬 正在生成演示影片...', '');
+    
+    // 模擬網絡延遲
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    // 顯示演示視頻
+    const section = document.getElementById('previewSection');
+    const video = document.getElementById('previewVideo');    
+    video.src = DEMO_VIDEOS[type];
+    section.style.display = 'block';
+    section.scrollIntoView({ behavior: 'smooth' });    
+    showStatus(statusId, '✅ 演示影片加載成功！（真實 API 需註冊）', 'success');
+    button.disabled = false;
+}
+
+function showStatus(elementId, message, type) {
+    const status = document.getElementById(elementId);
+    status.textContent = message;
+    status.className = `status ${type}`;
+}
+</script>
 </head>
 <body>
     <div class="face">
@@ -54,3 +130,4 @@
     </script>
 </body>
 </html>
+
