@@ -1,0 +1,19 @@
+   ```yaml
+   name: Git Cleanup
+
+   on:
+     push:
+       branches:
+         - main
+
+   jobs:
+     cleanup:
+       runs-on: ubuntu-latest
+
+       steps:
+         - name: Checkout repository
+           uses: actions/checkout@v2
+
+         - name: Run git garbage collection
+           run: git gc --aggressive
+   ```
