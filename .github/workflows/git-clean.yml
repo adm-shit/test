@@ -1,19 +1,19 @@
-   ```yaml
-   name: Git Cleanup
+name: Git Cleanup
 
-   on:
-     push:
-       branches:
-         - main
+on:
+  push:
+    branches:
+      - main
 
-   jobs:
-     cleanup:
-       runs-on: ubuntu-latest
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
 
-       steps:
-         - name: Checkout repository
-         uses: actions/checkout@v3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # 获取完整历史，方便 git gc
 
-         - name: Run git garbage collection
-           run: git gc --aggressive
-   ```
+      - name: Run git garbage collection
+        run: git gc --aggressive --prune=now
