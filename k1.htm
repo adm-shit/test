@@ -1,82 +1,107 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <meta charset="utf-8">
-<title>HTML-456KB拆分器（锚点只出现一次，导航本份有效）</title>
+<title>HTML-456KB拆分器（精准体积，导航高亮本份字母）</title>
 <style>
   body{font-family:Arial,Helvetica,sans-serif;margin:40px;background:#f7f7f7}
   input{font-size:18px;padding:10px}
   #links{margin-top:20px}
   a{display:inline-block;margin:4px 6px;padding:6px 12px;background:#2196F3;color:#fff;text-decoration:none;border-radius:4px}
+  .ok{color:#0a0;font-weight:bold}
 </style>
 
-<h2>📁 选择 HTML 文件 → 拆成 456 KB/份，锚点只写一次，导航仅本份有效</h2>
+<h2>📁 选择 HTML 文件 → 精准 456 KB/份，导航高亮本份字母</h2>
 <input id="f" type="file" accept=".htm,.html">
+<div id="prog"></div>
 <div id="links"></div>
 
 <script>
 const SIZE = 456 * 1024;
 const letters = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p'];
+const CHUNK  = 8 * 1024 * 1024;   // 8 MB/片
 
-document.getElementById('f').addEventListener('change', e=>{
+const $ = id=>document.getElementById(id);
+
+$('f').addEventListener('change', async e=>{
   const file = e.target.files[0]; if(!file)return;
-  const reader = new FileReader();
-  reader.onload = ()=>doSplit(file.name, reader.result);
-  reader.readAsText(file, 'utf-8');
-});
+  $('prog').textContent = '正在预处理段表…';
+  $('links').innerHTML = '';
 
-function doSplit(name, src){
-  const linksBox = document.getElementById('links');
-  linksBox.innerHTML='';
-
-  const total = src.length;
-  const step  = Math.ceil(total / 16);          // 每段大概长度
-  let part = 1, idx = 0, pos = 0;
-
-  // 预生成 16 段内容
-  const segments = letters.map((L,i)=>{
+  // 1. 快速建 16 段起止
+  const total = file.size;
+  const step  = Math.ceil(total / 16);
+  const segList = [];
+  for(let i=0;i<16;i++){
     let s = Math.min(i*step, total);
     let e = Math.min((i+1)*step, total);
-    let tagEnd = src.lastIndexOf('>', e); if(tagEnd>-1) e = tagEnd+1;
-    return {L, chunk: src.slice(s,e), start:s, end:e};
-  });
+    if(e<total){
+      const tail = await file.slice(e-1024, e).text();
+      let t = tail.lastIndexOf('>');
+      if(t>-1) e = e-1024+t+1;
+    }
+    segList.push({L:letters[i], start:s, end:e});
+  }
+
+  $('prog').textContent = '开始拆分…';
+  await doSplit(file, segList);
+  $('prog').textContent = '全部完成！';
+});
+
+async function doSplit(file, segList){
+  let part = 1, idx = 0, segPos = 0;
+  let outBody = [];          // 只存内容，导航最后拼
+  let existInThisFile = new Set();
 
   while(idx < 16){
-    const outLines = [];
-    const push = s=>outLines.push(s);
+    const seg = segList[idx];
+    const L   = seg.L;
+    let anchorInserted = false;
 
-    // 导航条（无 href）
-    push(`<html><META http-equiv=Content-Type content="text/html; charset=utf-8"><b><font color=green size=7><a name=0></a>`);
-    letters.forEach(l=>push(`<a data-letter="${l}">${l}</a> `));
-   // push(`</font></b><hr>`);
+    // 把本段再细拆，直到写完
+    while(segPos < seg.end){
+      // 第一次写本段时插锚点
+      if(!anchorInserted){
+        outBody.push(`<p><a name="${L}"></a>第${L.toUpperCase()}章 <a href="#0">1</a></p>`);
+        existInThisFile.add(L);
+        anchorInserted = true;
+      }
 
-    let nowSize = new Blob(outLines,{type:'text/html;charset=gbk'}).size;
-    const existInThisFile = new Set();
+      // 取 8 KB 小片
+      let left = seg.end - segPos;
+      let take = Math.min(left, 8192);
+      let off  = seg.start + segPos;
+      outBody.push(await file.slice(off, off + take).text());
+      segPos += take;
 
-    // 把当前段及后续段不断追加，直到够 456 KB 或没内容
-    while(idx < 16){
-      const seg = segments[idx];
-      // 第一次写本段时插入锚点
-      const anchor = `<p><a name="${seg.L}"></a>第${seg.L.toUpperCase()}章 <a href="#0">1</a></p>\n`;
-      push(anchor + seg.chunk);
-      existInThisFile.add(seg.L);
-      idx++;
+      // 实时测体积（只测内容，不含导航）
+      let nowSize = new Blob(outBody,{type:'text/html;charset=utf-8'}).size;
+      if(nowSize >= SIZE || (idx===15 && segPos>=seg.end)){
+        // 拼导航
+        let nav = [`<html><META http-equiv=Content-Type content="text/html; charset=utf-8"><b><font color=green size=7><a name=0></a>`];
+        letters.forEach(l=>{
+          let cls = existInThisFile.has(l) ? 'class="ok"' : '';
+          nav.push(`<a ${cls} href="#${l}">${l}</a> `);
+        });
+   //     nav.push(`</font></b><hr>`);
+        const final = nav.join('') + outBody.join('');
 
-      nowSize = new Blob(outLines,{type:'text/html;charset=gbk'}).size;
-      if(nowSize >= SIZE) break;
+        const blob = new Blob([final], {type:'text/html;charset=utf-8'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = file.name.replace(/\.htm$/i,'') + `_part_${part}.htm`;
+        a.textContent = `下载 ${a.download}`;
+        $('links').appendChild(a);
+        $('links').appendChild(document.createElement('br'));
+        part++;
+        $('prog').textContent = `已生成 ${part-1} 份…`;
+
+        // 重置，开始下一份
+        outBody = []; existInThisFile.clear();
+      }
+      if(segPos >= seg.end) break;
     }
-
-    // 给导航条只加本份存在的 href
-    let navHtml = outLines[0].replace(/<a data-letter="([a-p])">/g, (m,l)=>
-      existInThisFile.has(l) ? `<a href="#${l}">` : `<a>` );
-    const final = navHtml + outLines.slice(1).join('');
-
-    const blob = new Blob([final], {type:'text/html;charset=gbk'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name.replace(/\.htm$/i,'') + `_part_${part}.htm`;
-    a.textContent = `下载 ${a.download}`;
-    linksBox.appendChild(a); linksBox.appendChild(document.createElement('br'));
-    part++;
+    // 本段写完，进下一段
+    idx++; segPos = 0;
   }
 }
 </script>
