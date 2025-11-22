@@ -37,8 +37,8 @@ function previewText(){var b=$("preview");b.style.display="none";b.style.textTra
 <body onkeydown='interpretKey(event)'>
 <div class='container' id='container'>
 <div id='topper' style='background:#333;padding:10px;text-align:center;color:#ffdf60;font-weight:bold'>Portable Prompter<!/div>
-<div id='textentry'>/Enter script:<div id='textcontrols'><button onclick="addPTag($('promptinput'),'hl')" class='gButton'><b>Highlight</b></button></div>
-<form name='createpromptform'><textarea id='promptinput' name='promptinput' placeholder="Enter your script here..."></textarea><br/>
+<!div id='textentry'>/Enter script:<!div id='textcontrols'><button onclick="addPTag($('promptinput'),'hl')" class='gButton'><b>Highlight</b></button></div>
+<form name='createpromptform'><textarea id='promptinput' name='promptinput'  rows=20 cols=110 placeholder="Enter your script here..."></textarea><br/>
 <fieldset>
 <label>Start_Font_Size: <input type='number' id='initialfont' name='initialfont' value='26' min='10' max='100' onchange='previewText()'/></label>
 <label>Start_Speed: <input type='number' id='initialspeed' name='initialspeed' value='1' min='1' max='20' onchange='previewText()'/></label>
