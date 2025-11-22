@@ -1,15 +1,20 @@
-﻿<html><head>
+<html><head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Portable Prompter</title>
 <style>
 body{background:black;margin:0;padding:0;font-family:Helvetica,Arial;color:white;overflow:hidden}
 .container{width:100%;height:100%;overflow:auto}
 .prompter,#reference{display:block;font-size:25px;font-family:Helvetica,Arial;text-transform:uppercase;font-weight:bold;color:#FFF;background:black;margin-left:50px}
-#textentry{font-family:Helvetica,Arial;font-size:12px;color:white;background:#555;padding:5px;width:700px;margin:20px auto}
-#textentry textarea{border:0;padding:5px;width:100%;height:200px}
-#textentry fieldset{background:#333;border:2px solid white;padding:15px;margin-top:10px}
+#textentry{font-family:Helvetica,Arial;font-size:12px;color:white;background:#555;padding:15px;width:700px;margin:20px auto}
+#textentry textarea{border:0;padding:10px;width:100%;height:200px;box-sizing:border-box}
+#textentry fieldset{background:#333;border:2px solid white;padding:15px;margin-top:15px}
+.header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding:10px;background:#444;border-radius:5px}
+.settings-row{display:flex;gap:20px;margin:15px 0;flex-wrap:wrap}
+.setting-group{display:flex;align-items:center;gap:5px}
+.setting-group input[type="number"]{width:50px;padding:3px;text-align:center}
+.setting-group label{white-space:nowrap;font-size:12px}
 .counter{font-family:Helvetica,Arial;color:white;font-size:20px;font-weight:bold;background:#444;text-align:center;padding:5px;min-width:30px;display:inline-block}
-.gButton{font-family:Helvetica,Arial;color:white;font-size:16px;font-weight:bold;background:#666;border-radius:5px;padding:8px 12px;border:none;cursor:pointer;margin:2px}
+.gButton{font-family:Helvetica,Arial;color:white;font-size:14px;font-weight:bold;background:#666;border-radius:5px;padding:8px 12px;border:none;cursor:pointer;margin:2px}
 .gButton:hover{background:#888}
 #controller{height:80px;bottom:0;position:fixed;width:100%;z-index:999;background:#333;padding:10px 0;display:flex;justify-content:center;align-items:center}
 .control-group{display:flex;align-items:center;margin:0 15px;background:#444;padding:8px;border-radius:8px}
@@ -18,7 +23,10 @@ body{background:black;margin:0;padding:0;font-family:Helvetica,Arial;color:white
 .control-value{color:#fff;font-size:16px;font-weight:bold;margin:0 10px;min-width:30px;text-align:center}
 .hl{color:#FFFC40}.pause{color:#444}
 .flipped{direction:rtl;unicode-bidi:bidi-override;text-align:right}
-#preview{background:#222;padding:10px;margin:10px 0;border:1px solid #666;text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center}
+#preview{background:#222;padding:10px;margin:15px 0;border:1px solid #666;text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center;border-radius:5px}
+.page-title{color:#ffdf60;font-size:18px;font-weight:bold}
+.section-title{color:#fff;font-size:16px;font-weight:bold}
+.start-button{display:block;text-align:center;margin:15px 0;padding:12px;background:#ffdf60;color:black;font-weight:bold;border-radius:5px;text-decoration:none}
 </style>
 <script>
 var $=function(a){return document.getElementById(a)};var PROMPT_STOPPED=0;var PROMPT_PLAYING=1;var promptState=PROMPT_STOPPED;var lastTop=0;var pauseCounter=0;var speed=1;var fsize=26;var ftimer=0;var timerID=0;
@@ -36,18 +44,36 @@ function previewText(){var b=$("preview");b.style.display="none";b.style.textTra
 </head> 
 <body onkeydown='interpretKey(event)'>
 <div class='container' id='container'>
-<div id='topper' style='background:#333;padding:10px;text-align:center;color:#ffdf60;font-weight:bold'>Portable Prompter<!/div>
-<!div id='textentry'>/Enter script:<div id='textcontrols'><button onclick="addPTag($('promptinput'),'hl')" class='gButton'><b>Highlight</b></button></div>
-<form name='createpromptform'><textarea id='promptinput' name='promptinput'  rows=20 cols=110 placeholder="Enter your script here..."></textarea><br/>
-<fieldset>
-<label>Start_Font_Size: <input type='number' id='initialfont' name='initialfont' value='26' min='10' max='100' onchange='previewText()'/></label>
-<label>Start_Speed: <input type='number' id='initialspeed' name='initialspeed' value='1' min='1' max='20' onchange='previewText()'/></label>
-<label>Capitalize text <input type='checkbox' name='initialcap' id='initialcap' onchange='previewText()'></label>
-<label>Flip text <input type='checkbox' name='initialflip' id='initialflip' onchange='previewText()'/></label>
-<a href="javascript:submitScript()" class='gButton' style='display:block;text-align:center;margin:10px 0;padding:10px;background:#ffdf60;color:black'>Start Prompter</a>
+<div id='textentry'>
+<!-- 第一行：三个元素在同一行 -->
+<div class="header-row">
+    <div class="page-title">Portable Prompter</div>
+    <div class="section-title">Enter script:</div>
+    <button onclick="addPTag($('promptinput'),'hl')" class='gButton'><b>Highlight</b></button>
+</div>
+
+<textarea id='promptinput' name='promptinput' placeholder="Enter your script here..."></textarea>
+
+<!-- 第二行：设置选项，输入框更小 -->
+<div class="settings-row">
+    <div class="setting-group">
+        <label>Font Size:</label>
+        <input type='number' id='initialfont' name='initialfont' value='26' min='10' max='100' onchange='previewText()'/>
+    </div>
+    <div class="setting-group">
+        <label>Speed:</label>
+        <input type='number' id='initialspeed' name='initialspeed' value='1' min='1' max='20' onchange='previewText()'/>
+    </div>
+    <div class="setting-group">
+        <label>Capitalize <input type='checkbox' name='initialcap' id='initialcap' onchange='previewText()'></label>
+    </div>
+    <div class="setting-group">
+        <label>Flip text <input type='checkbox' name='initialflip' id='initialflip' onchange='previewText()'/></label>
+    </div>
+</div>
+
+<a href="javascript:submitScript()" class="start-button">Start Prompter</a>
 <div id='preview'>Preview Text</div>
-</fieldset>
-</form>
 </div>
 <div id='reference' style='visibility:hidden;'>Wait</div>
 <div class='prompter' id='prompter'></div>
