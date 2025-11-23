@@ -141,7 +141,7 @@ window.onload = function() {
 </head> 
 <body onkeydown='interpretKey(event)'>
 <div class='container' id='container'>
-<div id='topper' style='background:#333;padding:10px;text-align:center;color:#ffdf60;font-weight:bold'>Portable Prompter</div>
+<!div id='topper' style='background:#333;padding:10px;text-align:center;color:#ffdf60;font-weight:bold' Portable Prompter /div>
 <div id='textentry'>
 <!-- 第一行：三个元素在同一行 -->
 <div class="header-row">
@@ -149,9 +149,10 @@ window.onload = function() {
     <div class="section-title">Enter script:</div>
     <button onclick="addPTag($('promptinput'),'hl')" class='gButton'><b>Highlight</b></button>
 </div>
-
-<textarea id='promptinput' name='promptinput' placeholder="Enter your script here..."></textarea>
-
+    
+<textarea id='promptinput' name='promptinput'  placeholder="Enter.." rows=24 cols=140 
+          style="width:100%; height:400px; box-sizing:border-box"></textarea>
+    
 <!-- 第二行：设置选项，输入框更小 -->
 <div class="settings-row">
     <div class="setting-group">
