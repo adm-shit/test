@@ -1,0 +1,116 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">  <!-- UTF-8 為穩定版，支援 GBK 內容 -->
+    <title>u2.htm 內容索引：阿遠的秘密 - 黃易風格互動版 (~600KB)</title>
+    <style>
+        body { 
+            font-family: 'Noto Serif TC', serif; /* 武俠古籍字體 */
+            line-height: 1.6; margin: 20px; background: linear-gradient(to bottom, #f5e6d3, #8b4513); /* 黃易劍氣古卷漸層 */
+            color: #2c1810; 
+        }
+        nav { 
+            background: #d2691e; padding: 15px; border-radius: 10px; text-align: center; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3); /* 陰影如內力餘波 */
+        }
+        nav a { 
+            margin: 0 8px; text-decoration: none; color: #ffd700; font-weight: bold; 
+            padding: 5px 10px; border-radius: 5px; transition: all 0.3s;
+        }
+        nav a:hover { background: #cd853f; transform: scale(1.1); } /* 點擊如劍芒閃爍 */
+        .anchor { 
+            color: #8b0000; font-weight: bold; background: #fff8dc; padding: 10px; 
+            border-left: 6px solid #ff4500; margin: 10px 0; cursor: pointer;
+            border-radius: 5px; transition: all 0.3s;
+        }
+        .anchor:hover { background: #f0e68c; box-shadow: 0 2px 4px rgba(255,69,0,0.5); } /* 火紅劍氣效果 */
+        .content { display: block; } /* 預設展開 */
+        .back-top { color: #228b22; text-decoration: none; font-size: 0.9em; float: right; }
+        #search { width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #8b4513; border-radius: 5px; font-size: 16px; }
+        .highlight { background: #ffff00; font-weight: bold; } /* 搜尋高亮如氣機感應 */
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; background: #fff; }
+        th, td { border: 1px solid #d2691e; padding: 8px; text-align: left; }
+        th { background: #f4a460; }
+        h1 { text-align: center; color: #8b4513; font-size: 2em; }
+    </style>
+    <script>
+        // 互動功能：搜尋高亮（黃易式：如探查氣機）
+        function searchContent() {
+            let query = document.getElementById('searchInput').value.toLowerCase();
+            let elements = document.querySelectorAll('p, td');
+            elements.forEach(el => {
+                el.innerHTML = el.innerHTML.replace(/<mark class="highlight">|<\/mark>/g, '');
+                if (query && el.textContent.toLowerCase().includes(query)) {
+                    let regex = new RegExp(`(${query})`, 'gi');
+                    el.innerHTML = el.innerHTML.replace(regex, '<mark class="highlight">$1</mark>');
+                }
+            });
+        }
+        // 折疊功能（點擊錨點展開/收起，如內功收放）
+        function toggleContent(id) {
+            let content = document.getElementById('content-' + id);
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+        }
+    </script>
+</head>
+<body id="0">  <!-- 頂部錨點，返回用 -->
+
+    <!-- 頂部導航 + 搜尋框 -->
+    <h1>阿遠的秘密：黃易風格 A-Z 索引（基於 u2.htm）</h1>
+    <nav>
+        <a href="#a" onclick="toggleContent('a')">A</a><a href="#b" onclick="toggleContent('b')">B</a><a href="#c" onclick="toggleContent('c')">C</a><a href="#d" onclick="toggleContent('d')">D</a><a href="#e" onclick="toggleContent('e')">E</a>
+        <a href="#f" onclick="toggleContent('f')">F</a><a href="#g" onclick="toggleContent('g')">G</a><a href="#h" onclick="toggleContent('h')">H</a><a href="#i" onclick="toggleContent('i')">I</a><a href="#j" onclick="toggleContent('j')">J</a>
+        <a href="#k" onclick="toggleContent('k')">K</a><a href="#l" onclick="toggleContent('l')">L</a><a href="#m" onclick="toggleContent('m')">M</a><a href="#n" onclick="toggleContent('n')">N</a><a href="#o" onclick="toggleContent('o')">O</a>
+        <a href="#p" onclick="toggleContent('p')">P</a><a href="#q" onclick="toggleContent('q')">Q</a><a href="#r" onclick="toggleContent('r')">R</a><a href="#s" onclick="toggleContent('s')">S</a><a href="#t" onclick="toggleContent('t')">T</a>
+        <a href="#u" onclick="toggleContent('u')">U</a><a href="#v" onclick="toggleContent('v')">V</a><a href="#w" onclick="toggleContent('w')">W</a><a href="#x" onclick="toggleContent('x')">X</a><a href="#y" onclick="toggleContent('y')">Y</a><a href="#z" onclick="toggleContent('z')">Z</a>
+        | <a href="#0">返回頂部</a>
+    </nav>
+    <input type="text" id="searchInput" placeholder="搜尋關鍵（如 '阿遠' 或 '背叛'）..." onkeyup="searchContent()" style="display: block;">
+
+    <!-- 內容區：A-Z 分區，基於真實提取，黃易腦補（每個 ~20-25KB 密度模擬） -->
+    
+    <!-- A 區：阿遠主角 -->
+    <h2 class="anchor" onclick="toggleContent('a')" id="a"><a name="a">【A 區塊：阿遠 - 內心衝突的劍客】</a></h2>
+    <div id="content-a" class="content">
+        <table>
+            <tr><th>元素</th><th>細節</th></tr>
+            <tr><td>主角</td><td>阿遠：隱藏創傷的武者，內功如潮水般湧動，聽女人告白時，真氣隱隱顫抖。</td></tr>
+            <tr><td>情節</td><td>Segment 93：女人傾訴背叛，阿遠沉默支持，預示自身愧疚爆發。</td></tr>
+            <tr><td>黃易風</td><td>如韓柏般，氣機感應女人痛楚，AI prompt：'主角內力共鳴，聽聞秘密如劍氣刺心'。</td></tr>
+        </table>
+        <p>敘事線：阿遠盤坐暗室，真氣運轉，女人聲音如泣如訴：「我曾被背叛...失去孩子。」他心湖蕩漾，隱藏的劍痕隱隱作痛。這是故事起源，衝突如破碎虚空般蓄勢待發...</p>
+        <a href="#0" class="back-top">↑ 返回頂部</a>
+    </div>
+
+    <!-- B 區：背叛 confession -->
+    <h2 class="anchor" onclick="toggleContent('b')" id="b"><a name="b">【B 區塊：背叛 - 女人的告白】</a></h2>
+    <div id="content-b" class="content">
+        <table>
+            <tr><th>元素</th><th>細節</th></tr>
+            <tr><td>女主角</td><td>女人：無名，傷痕累累，告白涉及戀人背叛與孩子喪失。</td></tr>
+            <tr><td>情節</td><td>Segment 93：親密時刻被情感洪水打斷，阿遠傾聽。</td></tr>
+            <tr><td>黃易風</td><td>如覆雨翻雲情色暗示：氣機交融，不過三行，卻刺穿心防。</td></tr>
+        </table>
+        <p>敘事線：燭光搖曳，女人淚眼婆娑：「那夜，戀人離去，孩子隨之消逝。」阿遠劍指微顫，自己的秘密如暗流湧動...</p>
+        <a href="#0" class="back-top">↑ 返回頂部</a>
+    </div>
+
+    <!-- C 區：衝突內心 -->
+    <h2 class="anchor" onclick="toggleContent('c')" id="c"><a name="c">【C 區塊：衝突 - 情感重壓】</a></h2>
+    <div id="content-c" class="content">
+        <table>
+            <tr><th>元素</th><th>細節</th></tr>
+            <tr><td>情緒</td><td>沉重、憂鬱：阿遠的同理 vs 自身愧疚。</td></tr>
+            <tr><td>情節</td><td>Segment 93：告白後，阿遠內心預示未來對峙。</td></tr>
+            <tr><td>黃易風</td><td>三段內功：蓄力（傾聽）、爆發（情感餘波）、反思（哲學愧疚）。</td></tr>
+        </table>
+        <p>敘事線：暗室中，真氣如江河決堤，阿遠壓抑的劍意隱隱欲出...</p>
+        <a href="#0" class="back-top">↑ 返回頂部</a>
+    </div>
+
+    <!-- D 區：調查員 -->
+    <h2 class="anchor" onclick="toggleContent('d')" id="d"><a name="d">【D 區塊：調查員 - 冷峻追查】</a></h2>
+    <div id="content-d" class="content">
+        <table>
+            <tr><th>元素</th><th>細節</th></tr>
+            <tr><td>反派</td><td>調查員：冷酷
