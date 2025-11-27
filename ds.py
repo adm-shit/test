@@ -1,59 +1,370 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import re
 import os
+import sys
+import time
+from pathlib import Path
 
-def create_simple_search_html():
-    """最简单搜索版 - 使用最基本的搜索方法"""
+def process_large_html_file(input_file, output_file=None):
+    """处理大型HTML文件 - 适用于411MB+的文件"""
     
-    with open('u2.txt', 'r', encoding='gbk', errors='ignore') as f:
-        content = f.read()
+    if not os.path.exists(input_file):
+        print(f"错误: 输入文件 '{input_file}' 不存在")
+        return
     
-    print("文件总长度: " + str(len(content)) + " 字符")
+    # 自动生成输出文件名
+    if output_file is None:
+        input_path = Path(input_file)
+        output_file = input_path.stem + "_search.html"
     
-    # 使用找到的114个章节
-    pattern = r'第(\d+)章([^<]*)'
-    matches = list(re.finditer(pattern, content))
-    print("使用模式找到 " + str(len(matches)) + " 个章节")
+    print(f"开始处理文件: {input_file}")
+    file_size = os.path.getsize(input_file)
+    print(f"文件大小: {file_size / (1024*1024):.2f} MB")
     
-    # 构建完整的114章
+    start_time = time.time()
+    
+    # 使用智能编码检测读取文件
+    content = read_file_smart_encoding(input_file)
+    if content is None:
+        print("错误: 无法读取文件，请检查文件编码")
+        return
+    
+    print(f"文件读取完成，总长度: {len(content)} 字符")
+    
+    # 提取章节 - 使用更通用的模式
+    chapters = extract_chapters(content)
+    print(f"成功提取章节: {len(chapters)} 个")
+    
+    if len(chapters) == 0:
+        print("警告: 未找到章节，将创建单章节文件")
+        chapters = [(1, "全文内容", content[:500000])]  # 限制内容长度
+    
+    # 分配到区块
+    blocks = distribute_to_blocks(chapters)
+    
+    # 生成HTML
+    html_content = generate_search_html(blocks, len(chapters), input_file)
+    
+    # 写入文件 - 使用UTF-8编码避免编码问题
+    try:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        output_size = os.path.getsize(output_file)
+        processing_time = time.time() - start_time
+        
+        print("\n处理完成!")
+        print(f"输出文件: {output_file}")
+        print(f"输出大小: {output_size / 1024:.1f} KB")
+        print(f"总章节: {len(chapters)} 章")
+        print(f"处理时间: {processing_time:.1f} 秒")
+        print("功能: 支持全文搜索 + 导航链接 + 章节锚点 + 字体调整 + 折叠功能 + 彩色文本")
+        
+    except Exception as e:
+        print(f"写入文件时出错: {e}")
+
+def read_file_smart_encoding(file_path):
+    """智能检测文件编码并读取 - 不使用外部库"""
+    try:
+        # 读取二进制数据
+        with open(file_path, 'rb') as f:
+            raw_data = f.read()
+        
+        # 常见编码列表（按优先级排序）
+        encodings_to_try = [
+            'utf-8', 
+            'gbk', 
+            'gb2312', 
+            'gb18030',
+            'big5',
+            'latin1',
+            'cp1252'
+        ]
+        
+        best_content = None
+        best_encoding = None
+        best_score = 0
+        
+        for encoding in encodings_to_try:
+            try:
+                content = raw_data.decode(encoding, errors='replace')
+                score = evaluate_encoding_quality(content)
+                
+                print(f"编码 {encoding}: 质量得分 {score:.2f}")
+                
+                if score > best_score:
+                    best_score = score
+                    best_content = content
+                    best_encoding = encoding
+                    
+                # 如果质量很好，直接使用
+                if score > 0.9:
+                    break
+                    
+            except (UnicodeDecodeError, LookupError) as e:
+                print(f"编码 {encoding} 失败: {e}")
+                continue
+        
+        if best_content is not None:
+            print(f"选择最佳编码: {best_encoding} (质量得分: {best_score:.2f})")
+            return best_content
+        else:
+            # 如果所有编码都失败，使用替代模式
+            print("所有编码尝试失败，使用替代模式...")
+            return raw_data.decode('utf-8', errors='replace')
+        
+    except Exception as e:
+        print(f"读取文件时出错: {e}")
+        return None
+
+def evaluate_encoding_quality(text):
+    """评估编码质量"""
+    if not text or len(text) < 100:
+        return 0
+    
+    score = 0.0
+    
+    # 1. 检查常见中文字符
+    common_chinese_chars = len(re.findall(r'[\u4e00-\u9fff]', text))
+    chinese_ratio = common_chinese_chars / len(text)
+    score += min(chinese_ratio * 10, 0.4)  # 最多0.4分
+    
+    # 2. 检查常见中文标点和词语
+    common_chinese_patterns = [
+        r'的', r'了', r'是', r'在', r'和', r'有', r'不', r'我', r'你', r'他',
+        r'，', r'。', r'！', r'？', r'；', r'：', r'「', r'」', r'《', r'》'
+    ]
+    
+    pattern_count = 0
+    for pattern in common_chinese_patterns:
+        pattern_count += len(re.findall(pattern, text))
+    
+    if len(text) > 0:
+        pattern_ratio = pattern_count / len(text)
+        score += min(pattern_ratio * 20, 0.3)  # 最多0.3分
+    
+    # 3. 检查乱码字符（扣分）
+    garbled_chars = len(re.findall(r'�|[-¿]|[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', text))
+    garbled_ratio = garbled_chars / len(text) if len(text) > 0 else 0
+    score -= min(garbled_ratio * 10, 0.3)  # 最多扣0.3分
+    
+    # 4. 检查常见的HTML结构和章节模式（加分）
+    html_patterns = [
+        r'<div', r'<p>', r'<br', r'<h[1-6]', r'第[零一二三四五六七八九十百千\d]+章',
+        r'<title>', r'<body>', r'<html>'
+    ]
+    
+    html_count = 0
+    for pattern in html_patterns:
+        html_count += len(re.findall(pattern, text, re.IGNORECASE))
+    
+    html_ratio = html_count / (len(text) / 1000)  # 每1000字符的密度
+    score += min(html_ratio * 0.1, 0.2)  # 最多0.2分
+    
+    # 确保分数在0-1之间
+    return max(0.0, min(1.0, score))
+
+def extract_chapters(content):
+    """提取章节 - 使用更强大的模式"""
     chapters = []
-    for i, match in enumerate(matches):
+    
+    # 清理内容，移除明显的乱码
+    content = clean_garbled_text(content)
+    
+    # 多种章节模式 - 更全面的匹配
+    patterns = [
+        # 中文章节格式
+        r'第[零一二三四五六七八九十百千\d]+章[^\n<]*',
+        r'第[零一二三四五六七八九十百千\d]+回[^\n<]*',
+        r'第[零一二三四五六七八九十百千\d]+节[^\n<]*',
+        
+        # 数字章节格式
+        r'第\d+章[^\n<]*',
+        r'第\d+回[^\n<]*', 
+        r'第\d+节[^\n<]*',
+        
+        # HTML标题格式
+        r'<h[12][^>]*>第[零一二三四五六七八九十百千\d]+[章节回][^<]*</h[12]>',
+        r'<h[12][^>]*>第\d+[章节回][^<]*</h[12]>',
+        
+        # 英文章节格式
+        r'Chapter\s+\d+[^\n<]*',
+        r'Section\s+\d+[^\n<]*',
+    ]
+    
+    all_matches = []
+    for pattern in patterns:
         try:
-            chapter_num = int(match.group(1))
-            chapter_title = match.group(2).strip()
+            matches = list(re.finditer(pattern, content, re.IGNORECASE))
+            all_matches.extend(matches)
+            if matches:
+                print(f"模式 '{pattern[:20]}...' 找到 {len(matches)} 个匹配")
+        except Exception as e:
+            continue
+    
+    if not all_matches:
+        print("未找到标准章节格式，尝试查找所有标题...")
+        # 查找所有可能的标题行
+        title_patterns = [
+            r'<h[123][^>]*>.*?</h[123]>',
+            r'<div[^>]*class=[\'"][^\'"]*title[^\'"]*[\'"][^>]*>.*?</div>',
+            r'<p[^>]*class=[\'"][^\'"]*title[^\'"]*[\'"][^>]*>.*?</p>',
+        ]
+        
+        for pattern in title_patterns:
+            matches = list(re.finditer(pattern, content, re.IGNORECASE))
+            all_matches.extend(matches)
+            if matches:
+                print(f"标题模式找到 {len(matches)} 个匹配")
+    
+    if not all_matches:
+        print("使用段落分割创建章节")
+        return split_by_paragraphs(content)
+    
+    # 去重并排序
+    unique_matches = []
+    seen_positions = set()
+    
+    for match in sorted(all_matches, key=lambda x: x.start()):
+        if match.start() not in seen_positions:
+            unique_matches.append(match)
+            seen_positions.add(match.start())
+    
+    print(f"去重后找到 {len(unique_matches)} 个唯一章节")
+    
+    # 处理找到的章节
+    for i, match in enumerate(unique_matches):
+        try:
+            chapter_num = i + 1
+            full_text = match.group(0)
+            
+            # 提取标题文本
+            title_text = extract_title_text(full_text)
             
             # 提取内容
             start_pos = match.end()
-            if i < len(matches) - 1:
-                end_pos = matches[i + 1].start()
+            if i < len(unique_matches) - 1:
+                end_pos = unique_matches[i + 1].start()
             else:
                 end_pos = len(content)
             
             chapter_content = content[start_pos:end_pos]
             
-            # 清理内容但保留原始文本用于搜索
-            clean_content = re.sub(r'<[^>]+>', '', chapter_content)
-            clean_content = re.sub(r'\s+', ' ', clean_content).strip()
+            # 清理内容
+            clean_content = clean_html_content(chapter_content)
             
-            chapters.append((chapter_num, "第" + str(chapter_num) + "章" + chapter_title, clean_content))
+            # 如果标题为空，使用默认标题
+            if not title_text.strip():
+                title_text = f"第{chapter_num}章"
+            else:
+                title_text = f"第{chapter_num}章 {title_text}"
+            
+            chapters.append((chapter_num, title_text, clean_content))
             
         except Exception as e:
+            print(f"处理章节 {i+1} 时出错: {e}")
             continue
     
-    print("成功构建章节: " + str(len(chapters)) + " 个")
+    return chapters
+
+def clean_garbled_text(text):
+    """清理乱码文本"""
+    if not text:
+        return ""
     
-    # 分配到26个区块
+    # 移除常见的乱码字符序列
+    garbled_patterns = [
+        r'[�]',  # 替换字符
+        r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]',  # 控制字符
+    ]
+    
+    for pattern in garbled_patterns:
+        text = re.sub(pattern, '', text)
+    
+    return text
+
+def extract_title_text(html_text):
+    """从HTML标签中提取纯文本标题"""
+    # 移除HTML标签
+    text = re.sub(r'<[^>]+>', '', html_text)
+    # 清理空白字符和乱码
+    text = re.sub(r'\s+', ' ', text).strip()
+    text = clean_garbled_text(text)
+    return text
+
+def split_by_paragraphs(content, max_chapters=200):
+    """如果没有章节，按段落分割"""
+    print("使用段落分割创建伪章节")
+    
+    # 清理内容
+    content = clean_garbled_text(content)
+    
+    # 多种段落分割方式
+    paragraphs = []
+    
+    # 尝试按HTML段落分割
+    p_matches = list(re.finditer(r'<p[^>]*>(.*?)</p>', content, re.DOTALL))
+    if len(p_matches) > 10:
+        for match in p_matches:
+            text = clean_html_content(match.group(1))
+            if len(text.strip()) > 20:
+                paragraphs.append(text)
+    else:
+        # 按换行符分割
+        paragraphs = re.split(r'\n\s*\n', content)
+    
+    chapters = []
+    for i in range(min(len(paragraphs), max_chapters)):
+        clean_content = clean_html_content(paragraphs[i])
+        clean_content = clean_garbled_text(clean_content)
+        if len(clean_content.strip()) > 10:
+            chapters.append((i+1, f"第{i+1}段", clean_content))
+    
+    return chapters
+
+def clean_html_content(content):
+    """清理HTML内容"""
+    if not content:
+        return "内容为空"
+    
+    # 移除HTML标签但保留文本
+    clean_content = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL)
+    clean_content = re.sub(r'<style[^>]*>.*?</style>', '', clean_content, flags=re.DOTALL)
+    clean_content = re.sub(r'<[^>]+>', ' ', clean_content)
+    
+    # 合并空白字符
+    clean_content = re.sub(r'\s+', ' ', clean_content)
+    clean_content = clean_content.strip()
+    
+    if not clean_content:
+        clean_content = "本章节内容"
+    
+    return clean_content
+
+def distribute_to_blocks(chapters, num_blocks=26):
+    """将章节分配到区块"""
     total_chapters = len(chapters)
     blocks = {}
     
-    base_chapters = total_chapters // 26
-    extra_chapters = total_chapters % 26
+    if total_chapters == 0:
+        return blocks
+    
+    # 如果章节数少于区块数，每个区块放1章
+    if total_chapters <= num_blocks:
+        for i, chapter in enumerate(chapters):
+            letter = chr(65 + i)  # A, B, C...
+            blocks[letter] = [chapter]
+            print(f"区块 {letter}: 第{chapter[0]}章 (共1章)")
+        return blocks
+    
+    base_chapters = total_chapters // num_blocks
+    extra_chapters = total_chapters % num_blocks
     
     start_idx = 0
-    for i in range(26):
-        letter = chr(65 + i)
+    for i in range(num_blocks):
+        letter = chr(65 + i)  # A-Z
         chunk_size = base_chapters
         if i < extra_chapters:
             chunk_size += 1
@@ -65,292 +376,832 @@ def create_simple_search_html():
         if start_idx < total_chapters:
             blocks[letter] = chapters[start_idx:end_idx]
             block_info = blocks[letter]
-            print("区块 " + letter + ": 第" + str(block_info[0][0]) + "-第" + str(block_info[-1][0]) + "章 (共" + str(len(block_info)) + "章)")
+            print(f"区块 {letter}: 第{block_info[0][0]}-第{block_info[-1][0]}章 (共{len(block_info)}章)")
             start_idx = end_idx
     
-    # 生成HTML - 使用最简单的搜索方法
-    html_content = generate_simple_search_html(blocks, total_chapters)
-    
-    # 写入文件
-    output_file = 'xdpsk_simple_search.htm'
-    with open(output_file, 'w', encoding='gbk') as f:
-        f.write(html_content)
-    
-    file_size = os.path.getsize(output_file)
-    print("\n生成完成!")
-    print("文件: " + output_file)
-    print("大小: " + str(round(file_size/1024, 1)) + " KB")
-    print("总章节: " + str(total_chapters) + "章")
-    print("使用最简单搜索方法!")
+    return blocks
 
-def generate_simple_search_html(blocks, total_chapters):
-    """生成使用最简单搜索方法的HTML"""
+def generate_search_html(blocks, total_chapters, original_filename):
+    """生成搜索HTML - 包含导航链接和锚点"""
     
-    # 导航条
+    # 生成导航链接 - A-Z 区块导航
     nav_links = []
     for i in range(26):
         letter = chr(65 + i)
-        nav_links.append('<a href="#' + letter.lower() + '">' + letter + '</a>')
-    navigation = ' '.join(nav_links) + ' <a href="#0">↑顶部</a>'
+        if letter in blocks and blocks[letter]:
+            first_chap = blocks[letter][0][0]
+            last_chap = blocks[letter][-1][0]
+            nav_links.append(f'<a href="#block-{letter}" title="第{first_chap}-{last_chap}章">{letter}</a>')
     
-    # 区块标题
-    section_titles = {
-        'A': '浮夸演唱', 'B': '秦泽教导', 'C': '身份曝光',
-        'D': 'KTV风波', 'E': '姐弟互动', 'F': '老爷子震怒',
-        'G': '家庭会议', 'H': '歌星总决赛', 'I': '大明良将',
-        'J': '向天再借', 'K': '备战决赛', 'L': '股市投资',
-        'M': '王子衿', 'N': '财政消费', 'O': '星艺内部',
-        'P': '网络热梗', 'Q': '系统任务', 'R': '裴南曼',
-        'S': '朋友圈', 'T': '明星成长', 'U': '音乐才华',
-        'V': '家庭教育', 'W': '职场生活', 'X': '徐韵寒',
-        'Y': '弟控情节', 'Z': '总决赛'
-    }
+    # 添加顶部链接
+    nav_links.append('<a href="#top">顶部</a>')
+    navigation = ' | '.join(nav_links)
     
-    # 构建内容区块 - 这次确保有实际内容
+    # 内容区块
     content_blocks = []
     for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
         if letter in blocks and blocks[letter]:
             section_chapters = blocks[letter]
-            section_title = section_titles.get(letter, "区块" + letter)
             
-            block_html = '''
-<div class="section">
-    <h2 class="section-title" onclick="toggleSection('{letter}')">
-        <a name="{letter}">【{letter}】{title}</a>
-        <span class="chapter-count">第{first_chap}-{last_chap}章 (共{count}章) <span id="icon-{letter}">▼</span></span>
+            block_html = f'''
+<div class="block" id="block-{letter}">
+    <h2 class="block-title" onclick="toggleBlock('{letter}')">
+        <span class="block-letter rainbow-text">{letter}</span>
+        <span class="block-range gradient-text">第{section_chapters[0][0]}-第{section_chapters[-1][0]}章</span>
+        <span class="block-count color-text-3">(共{len(section_chapters)}章)</span>
+        <span class="block-controls">
+            <span class="fold-icon color-text-4" id="icon-{letter}">▼</span>
+            <a href="#top" class="top-link color-text-5">↑顶部</a>
+        </span>
     </h2>
-    <div class="section-content" id="c-{letter}">'''.format(
-        letter=letter.lower(),
-        title=section_title,
-        first_chap=section_chapters[0][0],
-        last_chap=section_chapters[-1][0],
-        count=len(section_chapters)
-    )
+    <div class="block-content" id="content-{letter}">'''
             
             for chap_num, chap_title, chap_content in section_chapters:
-                # 确保内容不为空
-                if not chap_content or len(chap_content.strip()) < 10:
-                    chap_content = "这是第" + str(chap_num) + "章的内容。秦宝宝和秦泽的故事在这里展开。老爷子对姐弟俩的行为很生气。王子衿是秦宝宝的好朋友。"
-                
+                # 为每个章节创建锚点
+                chapter_anchor = f"chap-{chap_num}"
                 paragraphs = smart_split(chap_content)
                 
-                block_html += '''
-    <div class="chapter">
-        <div class="chapter-header">{title}</div>
-        <div class="chapter-text">'''.format(title=chap_title)
+                block_html += f'''
+    <div class="chapter" id="{chapter_anchor}">
+        <h3 class="chapter-header" onclick="toggleChapter('{letter}-{chap_num}')">
+            <span class="chapter-title color-text-1">{escape_html(chap_title)}</span>
+            <span class="chapter-links">
+                <span class="fold-icon color-text-4" id="chapter-icon-{letter}-{chap_num}">▼</span>
+                <a href="#{chapter_anchor}" class="anchor-link color-text-2" title="章节链接">#</a>
+                <a href="#top" class="top-link color-text-5">↑</a>
+            </span>
+        </h3>
+        <div class="chapter-text" id="chapter-content-{letter}-{chap_num}">'''
                 
                 for i, para in enumerate(paragraphs):
-                    # 为每个段落添加唯一ID和原始内容
-                    para_id = 'p_{}_{}_{}'.format(letter.lower(), chap_num, i)
-                    block_html += '<p id="{}" data-original="{}">{}</p>'.format(
-                        para_id, escape_html(para), para
-                    )
+                    para_id = f'p_{letter}_{chap_num}_{i}'
+                    escaped_para = escape_html(para)
+                    # 为段落添加随机颜色类
+                    color_class = f'color-text-{(i % 6) + 1}'
+                    block_html += f'<p id="{para_id}" class="{color_class}" data-original="{escaped_para}">{para}</p>'
                 
                 block_html += '''
         </div>
     </div>'''
             
             block_html += '''
-        <div class="back-to-top">
-            <a href="#0">↑ 返回顶部</a>
-        </div>
     </div>
 </div>'''
             
             content_blocks.append(block_html)
     
-    # 最简单的搜索JavaScript
-    html_template = '''<!DOCTYPE html>
+    # 将所有内容区块连接成一个字符串
+    content_html = ''.join(content_blocks)
+    
+    # 如果没有内容区块，创建默认内容
+    if not content_html:
+        content_html = '''
+<div class="block" id="block-default">
+    <h2 class="block-title" onclick="toggleBlock('default')">
+        <span class="block-letter rainbow-text">全</span>
+        <span class="block-range gradient-text">全文内容</span>
+        <span class="block-controls">
+            <span class="fold-icon color-text-4" id="icon-default">▼</span>
+            <a href="#top" class="top-link color-text-5">↑顶部</a>
+        </span>
+    </h2>
+    <div class="block-content" id="content-default">
+        <div class="chapter" id="chap-1">
+            <h3 class="chapter-header" onclick="toggleChapter('default-1')">
+                <span class="chapter-title color-text-1">全文内容</span>
+                <span class="chapter-links">
+                    <span class="fold-icon color-text-4" id="chapter-icon-default-1">▼</span>
+                    <a href="#chap-1" class="anchor-link color-text-2" title="章节链接">#</a>
+                    <a href="#top" class="top-link color-text-5">↑</a>
+                </span>
+            </h3>
+            <div class="chapter-text" id="chapter-content-default-1">
+                <p class="color-text-3">文件内容加载成功，请使用搜索功能查找特定内容。</p>
+            </div>
+        </div>
+    </div>
+</div>'''
+    
+    # HTML模板
+    html_template = f'''<!DOCTYPE html>
 <html>
 <head>
-<meta charset="GBK">
-<title>秦宝宝与秦泽故事全集 - 简单搜索版</title>
+<meta charset="UTF-8">
+<title>全文搜索版 - {escape_html(original_filename)}</title>
 <style>
-body {
-    font-family: "Microsoft YaHei", sans-serif;
+/* 重置样式 */
+* {{
     margin: 0;
     padding: 0;
-    background: #f8f9fa;
+    box-sizing: border-box;
+}}
+
+body {{
+    font-family: "Microsoft YaHei", "SimHei", sans-serif;
     line-height: 1.6;
-}
-.mark {
+    color: #333;
+    background: #f8f9fa;
+    font-size: 16px; /* 默认字体大小 */
+    transition: font-size 0.3s ease;
+}}
+
+/* 字体大小类 */
+.font-small {{
+    font-size: 14px !important;
+}}
+
+.font-normal {{
+    font-size: 16px !important;
+}}
+
+.font-large {{
+    font-size: 18px !important;
+}}
+
+.font-xlarge {{
+    font-size: 20px !important;
+}}
+
+/* 彩色文本系统 */
+.rainbow-text {{
+    background: linear-gradient(45deg, #FF6B6B, #4ECDC4, #45B7D1, #96CEB4, #FFEAA7, #DDA0DD);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+}}
+
+.gradient-text {{
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+}}
+
+.color-text-1 {{ color: #E74C3C !important; }} /* 红色 */
+.color-text-2 {{ color: #2980B9 !important; }} /* 蓝色 */
+.color-text-3 {{ color: #27AE60 !important; }} /* 绿色 */
+.color-text-4 {{ color: #8E44AD !important; }} /* 紫色 */
+.color-text-5 {{ color: #E67E22 !important; }} /* 橙色 */
+.color-text-6 {{ color: #16A085 !important; }} /* 青色 */
+
+/* 高亮样式 */
+.mark {{
     background: #ffeb3b !important;
     color: #000 !important;
     padding: 2px 4px;
-    border-radius: 2px;
-}
-.nav-bar {
+    border-radius: 3px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}}
+
+/* 顶部导航 - 缩小高度 */
+.header {{
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 20px; /* 减少内边距 */
     position: sticky;
     top: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 15px;
     z-index: 1000;
-    text-align: center;
-}
-.nav-bar a {
-    margin: 0 5px;
-    text-decoration: none;
-    color: white;
-    font-weight: bold;
-    padding: 5px 10px;
-    border-radius: 4px;
-}
-.search-box {
-    padding: 20px;
-    background: white;
-    border-bottom: 1px solid #e1e1e1;
-}
-.search-box input {
-    width: 100%;
-    padding: 15px;
-    font-size: 16px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-}
-.section {
-    margin: 20px;
-    background: white;
-    border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-.section-title {
-    background: #fff2e8;
-    color: #d4380d;
-    padding: 15px;
+    min-height: 60px; /* 固定最小高度 */
+}}
+
+.header h1 {{
+    margin: 0 0 5px 0; /* 减少下边距 */
+    font-size: 20px; /* 缩小字体 */
+    text-align: center;
+}}
+
+.header .subtitle {{
     margin: 0;
-    cursor: pointer;
-    border-left: 6px solid #ff6b35;
-}
-.section-content {
-    padding: 20px;
-}
-.chapter {
-    margin-bottom: 30px;
-}
-.chapter-header {
-    color: #d4380d;
-    font-size: 18px;
+    opacity: 0.9;
+    font-size: 12px; /* 缩小字体 */
+    text-align: center;
+}}
+
+/* 控制栏 - 缩小高度 */
+.control-bar {{
+    background: white;
+    padding: 8px 20px; /* 减少内边距 */
+    border-bottom: 1px solid #e1e1e1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px; /* 减少间距 */
+    min-height: 40px; /* 固定最小高度 */
+}}
+
+.control-group {{
+    display: flex;
+    align-items: center;
+    gap: 8px; /* 减少间距 */
+}}
+
+.control-label {{
     font-weight: bold;
-    margin-bottom: 15px;
-    border-bottom: 2px solid #ff6b35;
-    padding-bottom: 5px;
-}
-.chapter-text p {
-    margin-bottom: 15px;
+    color: #666;
+    font-size: 13px; /* 缩小字体 */
+}}
+
+.control-btn {{
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 6px 12px; /* 减少内边距 */
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px; /* 缩小字体 */
+    transition: all 0.3s;
+}}
+
+.control-btn:hover {{
+    background: #5a6fd8;
+    transform: translateY(-1px);
+}}
+
+.control-btn.active {{
+    background: #ff6b35;
+}}
+
+.font-controls {{
+    display: flex;
+    gap: 3px; /* 减少间距 */
+}}
+
+.font-btn {{
+    background: #f0f0f0;
+    border: 1px solid #ddd; /* 减小边框 */
+    padding: 4px 8px; /* 减少内边距 */
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px; /* 缩小字体 */
+    transition: all 0.3s;
+}}
+
+.font-btn:hover {{
+    background: #e0e0e0;
+}}
+
+.font-btn.active {{
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}}
+
+/* 主导航 - 缩小高度 */
+.main-nav {{
+    background: rgba(255,255,255,0.1);
+    padding: 8px 15px; /* 减少内边距 */
+    margin: 8px -20px -8px -20px; /* 调整外边距 */
+    backdrop-filter: blur(10px);
+    text-align: center;
+    min-height: 30px; /* 固定最小高度 */
+}}
+
+.main-nav a {{
+    color: white;
+    text-decoration: none;
+    margin: 0 5px; /* 减少间距 */
+    padding: 3px 8px; /* 减少内边距 */
+    border-radius: 3px;
+    transition: background 0.3s;
+    display: inline-block;
+    font-size: 13px; /* 缩小字体 */
+}}
+
+.main-nav a:hover {{
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-1px);
+}}
+
+/* 搜索框 - 缩小高度 */
+.search-box {{
+    background: white;
+    padding: 15px 25px; /* 减少内边距 */
+    border-bottom: 1px solid #e1e1e1;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    min-height: 70px; /* 固定最小高度 */
+}}
+
+.search-container {{
+    max-width: 800px;
+    margin: 0 auto;
+}}
+
+.search-box input {{
+    width: 100%;
+    padding: 12px 18px; /* 减少内边距 */
+    font-size: 15px; /* 缩小字体 */
+    border: 2px solid #e1e1e1;
+    border-radius: 20px; /* 稍微减小圆角 */
+    outline: none;
+    transition: all 0.3s;
+}}
+
+.search-box input:focus {{
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}}
+
+.search-stats {{
+    margin-top: 10px; /* 减少上边距 */
+    padding: 8px 15px; /* 减少内边距 */
+    background: #4caf50;
+    color: white;
+    border-radius: 6px; /* 减小圆角 */
+    display: none;
+    text-align: center;
+    font-size: 13px; /* 缩小字体 */
+}}
+
+.search-stats.error {{
+    background: #f44336;
+}}
+
+/* 区块样式 - 缩小高度 */
+.block {{
+    margin: 15px; /* 减少外边距 */
+    background: white;
+    border-radius: 8px; /* 减小圆角 */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* 减小阴影 */
+    overflow: hidden;
+    transition: transform 0.2s;
+}}
+
+.block:hover {{
+    transform: translateY(-1px); /* 减小悬停移动 */
+}}
+
+.block-title {{
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    color: white;
+    padding: 12px 15px; /* 减少内边距 */
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px; /* 减少间距 */
+    cursor: pointer;
+    transition: background 0.3s;
+    min-height: 50px; /* 固定最小高度 */
+}}
+
+.block-title:hover {{
+    background: linear-gradient(135deg, #e55a2b, #e0841a);
+}}
+
+.block-letter {{
+    font-size: 22px; /* 缩小字体 */
+    font-weight: bold;
+    background: rgba(255,255,255,0.2);
+    padding: 6px 12px; /* 减少内边距 */
+    border-radius: 6px; /* 减小圆角 */
+    min-width: 40px; /* 减小最小宽度 */
+    text-align: center;
+}}
+
+.block-range {{
+    font-size: 16px; /* 缩小字体 */
+    font-weight: bold;
+    flex-grow: 1;
+}}
+
+.block-count {{
+    opacity: 0.9;
+    font-size: 14px; /* 缩小字体 */
+}}
+
+.block-controls {{
+    display: flex;
+    align-items: center;
+    gap: 8px; /* 减少间距 */
+}}
+
+.fold-icon {{
+    font-size: 12px; /* 缩小字体 */
+    transition: transform 0.3s;
+    cursor: pointer;
+    user-select: none;
+}}
+
+.fold-icon.collapsed {{
+    transform: rotate(-90deg);
+}}
+
+.top-link {{
+    color: white;
+    text-decoration: none;
+    padding: 4px 8px; /* 减少内边距 */
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px; /* 减小圆角 */
+    font-size: 12px; /* 缩小字体 */
+    transition: background 0.3s;
+}}
+
+.top-link:hover {{
+    background: rgba(255,255,255,0.3);
+}}
+
+.block-content {{
+    padding: 0;
+    transition: max-height 0.3s ease;
+}}
+
+.block-content.collapsed {{
+    max-height: 0;
+    overflow: hidden;
+}}
+
+/* 章节样式 - 缩小高度 */
+.chapter {{
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.3s;
+}}
+
+.chapter:last-child {{
+    border-bottom: none;
+}}
+
+.chapter-header {{
+    color: #d4380d;
+    font-size: 18px; /* 缩小字体 */
+    font-weight: bold;
+    margin: 0;
+    padding: 15px 20px; /* 减少内边距 */
+    border-bottom: 2px solid #ff6b35; /* 减小边框 */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px; /* 减少间距 */
+    cursor: pointer;
+    transition: background 0.3s;
+    min-height: 50px; /* 固定最小高度 */
+}}
+
+.chapter-header:hover {{
+    background: #fff8f0;
+}}
+
+.chapter-title {{
+    flex-grow: 1;
+}}
+
+.chapter-links {{
+    display: flex;
+    align-items: center;
+    gap: 8px; /* 减少间距 */
+}}
+
+.chapter-text {{
+    padding: 0 20px; /* 减少内边距 */
+    transition: max-height 0.3s ease;
+    overflow: hidden;
+}}
+
+.chapter-text.collapsed {{
+    max-height: 0;
+    padding: 0 20px;
+}}
+
+.chapter-text p {{
+    margin-bottom: 12px; /* 减少下边距 */
     text-align: justify;
     text-indent: 2em;
-}
-.test-content {
-    background: #e8f5e8;
-    padding: 10px;
-    margin: 10px 0;
-    border-left: 4px solid #4caf50;
-}
+    line-height: 1.6; /* 减小行高 */
+    font-size: inherit;
+    padding: 2px 0; /* 添加小内边距 */
+}}
+
+/* 响应式设计 */
+@media (max-width: 768px) {{
+    .block {{
+        margin: 8px;
+    }}
+    
+    .chapter-header {{
+        font-size: 16px;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px 15px;
+        min-height: 45px;
+    }}
+    
+    .chapter-links {{
+        align-self: flex-end;
+    }}
+    
+    .main-nav {{
+        padding: 6px 10px;
+        min-height: 25px;
+    }}
+    
+    .main-nav a {{
+        margin: 1px;
+        padding: 2px 6px;
+        font-size: 11px;
+    }}
+    
+    .block-title {{
+        flex-direction: column;
+        gap: 6px;
+        text-align: center;
+        padding: 10px 12px;
+        min-height: 45px;
+    }}
+    
+    .control-bar {{
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        padding: 6px 15px;
+        min-height: 35px;
+    }}
+    
+    .control-group {{
+        justify-content: center;
+    }}
+    
+    .header {{
+        padding: 6px 15px;
+        min-height: 50px;
+    }}
+    
+    .header h1 {{
+        font-size: 18px;
+        margin-bottom: 3px;
+    }}
+    
+    .search-box {{
+        padding: 10px 20px;
+        min-height: 60px;
+    }}
+}}
 </style>
-<script>
-// 最简单的搜索函数
-function searchContent() {
-    console.log('搜索开始');
-    var query = document.getElementById('searchInput').value;
-    var results = document.getElementById('searchStats');
-    var allParagraphs = document.querySelectorAll('.chapter-text p');
-    
-    console.log('搜索关键词:', query);
-    console.log('找到段落数:', allParagraphs.length);
-    
-    var foundCount = 0;
-    
-    // 重置所有高亮
-    allParagraphs.forEach(function(p) {
-        var original = p.getAttribute('data-original');
-        if (original) {
-            p.innerHTML = original;
-        }
-    });
-    
-    if (!query) {
-        results.innerHTML = '';
-        results.style.display = 'none';
-        return;
-    }
-    
-    // 搜索每个段落
-    allParagraphs.forEach(function(p) {
-        var text = p.textContent || p.innerText;
-        if (text.includes(query)) {
-            foundCount++;
-            console.log('找到匹配:', text.substring(0, 50));
-            
-            // 最简单的高亮方法
-            var newHTML = text.replace(new RegExp(query, 'g'), 
-                                      '<mark class="mark">' + query + '</mark>');
-            p.innerHTML = newHTML;
-        }
-    });
-    
-    results.innerHTML = '搜索 "' + query + '" 找到 ' + foundCount + ' 个结果';
-    results.style.display = 'block';
-    console.log('搜索完成，找到:', foundCount, '个结果');
-}
-
-function toggleSection(id) {
-    var content = document.getElementById('c-' + id);
-    var icon = document.getElementById('icon-' + id);
-    if (content.style.display === 'none') {
-        content.style.display = 'block';
-        icon.textContent = '▼';
-    } else {
-        content.style.display = 'none';
-        icon.textContent = '▲';
-    }
-}
-
-// 页面加载后添加测试内容
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('页面加载完成');
-    
-    // 添加测试段落
-    var firstSection = document.querySelector('.section-content');
-    if (firstSection) {
-        var testDiv = document.createElement('div');
-        testDiv.className = 'test-content';
-        testDiv.innerHTML = '<h3>测试搜索功能</h3>' +
-                           '<p data-original="这是一个测试段落，包含关键词：秦宝宝">这是一个测试段落，包含关键词：秦宝宝</p>' +
-                           '<p data-original="这是另一个测试，包含：秦泽">这是另一个测试，包含：秦泽</p>' +
-                           '<p data-original="老爷子在故事中很重要">老爷子在故事中很重要</p>' +
-                           '<p data-original="王子衿是重要角色">王子衿是重要角色</p>';
-        firstSection.insertBefore(testDiv, firstSection.firstChild);
-    }
-    
-    // 默认展开所有章节
-    document.querySelectorAll('.section-content').forEach(function(el) {
-        el.style.display = 'block';
-    });
-    
-    console.log('测试内容已添加');
-});
-</script>
 </head>
 <body>
-<a name="0"></a>
-
-<div style="background: #e3f2fd; padding: 15px; text-align: center; color: #1976d2;">
-    <strong>秦宝宝与秦泽故事全集 - 搜索功能测试版</strong><br>
-    <small>页面顶部有测试段落，请先搜索"秦宝宝"测试功能</small>
+<div class="header" id="top">
+    <h1>📚 全文搜索版</h1>
+    <div class="subtitle">{escape_html(original_filename)} | 总章节: {total_chapters} 章</div>
+    <div class="main-nav">
+        {navigation}
+    </div>
 </div>
 
-<div class="nav-bar">
-    ''' + navigation + '''
+<div class="control-bar">
+    <div class="control-group">
+        <span class="control-label">字体大小:</span>
+        <div class="font-controls">
+            <button class="font-btn" onclick="setFontSize('small')">小</button>
+            <button class="font-btn active" onclick="setFontSize('normal')">中</button>
+            <button class="font-btn" onclick="setFontSize('large')">大</button>
+            <button class="font-btn" onclick="setFontSize('xlarge')">特大</button>
+        </div>
+    </div>
+    <div class="control-group">
+        <span class="control-label">折叠控制:</span>
+        <button class="control-btn" onclick="expandAll()">展开所有</button>
+        <button class="control-btn" onclick="collapseAll()">折叠所有</button>
+        <button class="control-btn" onclick="toggleAllBlocks()">切换区块</button>
+        <button class="control-btn" onclick="toggleAllChapters()">切换章节</button>
+    </div>
 </div>
 
 <div class="search-box">
-    <input type="text" id="searchInput" onkeyup="searchContent()" 
-           placeholder="请输入关键词测试搜索，如：秦宝宝、秦泽、老爷子、王子衿">
-    <div id="searchStats" style="display: none; margin-top: 10px; padding: 10px; background: #4caf50; color: white; border-radius: 4px;"></div>
+    <div class="search-container">
+        <input type="text" id="searchInput" onkeyup="performSearchWithDebounce()" 
+               placeholder="请输入关键词搜索... (如：章、第、人物名等)">
+        <div id="searchStats" class="search-stats"></div>
+    </div>
 </div>
 
-''' + ''.join(content_blocks) + '''
+{content_html}
 
+<script>
+// 字体大小控制
+let currentFontSize = 'normal';
+
+function setFontSize(size) {{
+    // 移除所有字体类
+    document.body.classList.remove('font-small', 'font-normal', 'font-large', 'font-xlarge');
+    // 添加新字体类
+    document.body.classList.add(`font-${{size}}`);
+    currentFontSize = size;
+    
+    // 更新按钮状态
+    document.querySelectorAll('.font-btn').forEach(btn => {{
+        btn.classList.remove('active');
+    }});
+    event.target.classList.add('active');
+}}
+
+// 折叠展开功能
+function toggleBlock(blockId) {{
+    const content = document.getElementById(`content-${{blockId}}`);
+    const icon = document.getElementById(`icon-${{blockId}}`);
+    
+    if (content.classList.contains('collapsed')) {{
+        content.classList.remove('collapsed');
+        icon.classList.remove('collapsed');
+        icon.textContent = '▼';
+    }} else {{
+        content.classList.add('collapsed');
+        icon.classList.add('collapsed');
+        icon.textContent = '▶';
+    }}
+}}
+
+function toggleChapter(chapterId) {{
+    const content = document.getElementById(`chapter-content-${{chapterId}}`);
+    const icon = document.getElementById(`chapter-icon-${{chapterId}}`);
+    
+    if (content.classList.contains('collapsed')) {{
+        content.classList.remove('collapsed');
+        icon.classList.remove('collapsed');
+        icon.textContent = '▼';
+    }} else {{
+        content.classList.add('collapsed');
+        icon.classList.add('collapsed');
+        icon.textContent = '▶';
+    }}
+}}
+
+// 批量控制函数
+function expandAll() {{
+    document.querySelectorAll('.block-content').forEach(el => {{
+        el.classList.remove('collapsed');
+    }});
+    document.querySelectorAll('.chapter-text').forEach(el => {{
+        el.classList.remove('collapsed');
+    }});
+    document.querySelectorAll('.fold-icon').forEach(el => {{
+        el.classList.remove('collapsed');
+        el.textContent = '▼';
+    }});
+}}
+
+function collapseAll() {{
+    document.querySelectorAll('.block-content').forEach(el => {{
+        el.classList.add('collapsed');
+    }});
+    document.querySelectorAll('.chapter-text').forEach(el => {{
+        el.classList.add('collapsed');
+    }});
+    document.querySelectorAll('.fold-icon').forEach(el => {{
+        el.classList.add('collapsed');
+        el.textContent = '▶';
+    }});
+}}
+
+function toggleAllBlocks() {{
+    const allCollapsed = Array.from(document.querySelectorAll('.block-content'))
+        .every(el => el.classList.contains('collapsed'));
+    
+    document.querySelectorAll('.block-content').forEach(el => {{
+        if (allCollapsed) {{
+            el.classList.remove('collapsed');
+        }} else {{
+            el.classList.add('collapsed');
+        }}
+    }});
+    
+    document.querySelectorAll('.block-title .fold-icon').forEach(el => {{
+        if (allCollapsed) {{
+            el.classList.remove('collapsed');
+            el.textContent = '▼';
+        }} else {{
+            el.classList.add('collapsed');
+            el.textContent = '▶';
+        }}
+    }});
+}}
+
+function toggleAllChapters() {{
+    const allCollapsed = Array.from(document.querySelectorAll('.chapter-text'))
+        .every(el => el.classList.contains('collapsed'));
+    
+    document.querySelectorAll('.chapter-text').forEach(el => {{
+        if (allCollapsed) {{
+            el.classList.remove('collapsed');
+        }} else {{
+            el.classList.add('collapsed');
+        }}
+    }});
+    
+    document.querySelectorAll('.chapter-header .fold-icon').forEach(el => {{
+        if (allCollapsed) {{
+            el.classList.remove('collapsed');
+            el.textContent = '▼';
+        }} else {{
+            el.classList.add('collapsed');
+            el.textContent = '▶';
+        }}
+    }});
+}}
+
+// 增强搜索功能
+function performSearch() {{
+    const query = document.getElementById('searchInput').value.trim();
+    const results = document.getElementById('searchStats');
+    const allParagraphs = document.querySelectorAll('.chapter-text p');
+    
+    let foundCount = 0;
+    let foundChapters = new Set();
+    
+    // 重置所有高亮
+    allParagraphs.forEach(p => {{
+        const original = p.getAttribute('data-original');
+        if (original) {{
+            p.innerHTML = original;
+        }}
+        p.closest('.chapter').style.backgroundColor = '';
+    }});
+    
+    if (!query) {{
+        results.innerHTML = '';
+        results.style.display = 'none';
+        return;
+    }}
+    
+    // 搜索每个段落
+    allParagraphs.forEach(p => {{
+        const text = p.textContent || p.innerText;
+        if (text.includes(query)) {{
+            foundCount++;
+            const chapter = p.closest('.chapter');
+            if (chapter) {{
+                foundChapters.add(chapter.id);
+                // 自动展开包含搜索结果的章节
+                const chapterContent = chapter.querySelector('.chapter-text');
+                const chapterIcon = chapter.querySelector('.chapter-header .fold-icon');
+                if (chapterContent && chapterContent.classList.contains('collapsed')) {{
+                    chapterContent.classList.remove('collapsed');
+                    if (chapterIcon) {{
+                        chapterIcon.classList.remove('collapsed');
+                        chapterIcon.textContent = '▼';
+                    }}
+                }}
+            }}
+            
+            // 高亮匹配文本
+            const newHTML = text.replace(new RegExp(escapeRegExp(query), 'g'), 
+                '<mark class="mark">' + query + '</mark>');
+            p.innerHTML = newHTML;
+            
+            // 高亮包含匹配的章节
+            if (chapter) {{
+                chapter.style.backgroundColor = '#f8ffd6';
+            }}
+        }}
+    }});
+    
+    if (foundCount > 0) {{
+        results.innerHTML = '✅ 搜索 "<b>' + query + '</b>" 找到 <b>' + foundCount + '</b> 个匹配，分布在 <b>' + foundChapters.size + '</b> 个章节中';
+        results.style.display = 'block';
+        results.className = 'search-stats';
+    }} else {{
+        results.innerHTML = '❌ 未找到包含 "<b>' + query + '</b>" 的内容';
+        results.style.display = 'block';
+        results.className = 'search-stats error';
+    }}
+}}
+
+function escapeRegExp(string) {{
+    return string.replace(/[.*+?^${{}}()|[\\]\\\\]/g, '\\\\$&');
+}}
+
+// 平滑滚动到锚点
+document.addEventListener('DOMContentLoaded', function() {{
+    // 添加点击事件到锚点链接
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {{
+        anchor.addEventListener('click', function (e) {{
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {{
+                target.scrollIntoView({{
+                    behavior: 'smooth',
+                    block: 'start'
+                }});
+            }}
+        }});
+    }});
+    
+    console.log('页面加载完成！搜索功能已就绪。');
+    console.log('总章节数:', {total_chapters});
+}});
+
+// 实时搜索防抖
+let searchTimer;
+function performSearchWithDebounce() {{
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {{
+        performSearch();
+    }}, 300);
+}}
+</script>
 </body>
 </html>'''
     
@@ -363,34 +1214,62 @@ def escape_html(text):
     return (text.replace('&', '&amp;')
                .replace('<', '&lt;')
                .replace('>', '&gt;')
-               .replace('"', '&quot;'))
+               .replace('"', '&quot;')
+               .replace("'", '&#39;'))
 
-def smart_split(text, max_length=300):
+def smart_split(text, max_length=500):
     """智能文本分割"""
-    if not text:
+    if not text or len(text.strip()) == 0:
         return ["内容为空"]
     
+    text = text.strip()
     if len(text) <= max_length:
         return [text]
     
+    # 按句子分割
     sentences = re.split(r'[。！？!?]', text)
     paragraphs = []
     current_para = []
+    current_length = 0
     
     for sentence in sentences:
         sentence = sentence.strip()
         if sentence:
-            current_para.append(sentence)
-            if len(''.join(current_para)) > max_length:
+            sentence_length = len(sentence)
+            if current_length + sentence_length > max_length and current_para:
                 para_text = '。'.join(current_para) + '。'
                 paragraphs.append(para_text)
-                current_para = []
+                current_para = [sentence]
+                current_length = sentence_length
+            else:
+                current_para.append(sentence)
+                current_length += sentence_length
     
     if current_para:
         para_text = '。'.join(current_para) + '。'
         paragraphs.append(para_text)
     
-    return paragraphs if paragraphs else ["章节内容"]
+    return paragraphs if paragraphs else [text[:max_length] + "..."]
+
+def main():
+    """主函数"""
+    if len(sys.argv) > 1:
+        input_file = sys.argv[1]
+        output_file = sys.argv[2] if len(sys.argv) > 2 else None
+    else:
+        # 如果没有参数，使用当前目录下的第一个htm/html文件
+        html_files = list(Path('.').glob('*.htm')) + list(Path('.').glob('*.html'))
+        if html_files:
+            input_file = str(html_files[0])
+            output_file = None
+            print(f"自动选择文件: {input_file}")
+        else:
+            print("用法: python ds.py <输入文件> [输出文件]")
+            print("或直接将文件拖放到此脚本上")
+            input("按回车退出...")
+            return
+    
+    process_large_html_file(input_file, output_file)
 
 if __name__ == "__main__":
-    create_simple_search_html()
+    main()
