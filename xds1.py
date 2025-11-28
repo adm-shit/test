@@ -60,7 +60,7 @@ def process_large_html_file(input_file, output_file=None):
         print(f"输出大小: {output_size / 1024:.1f} KB")
         print(f"总章节: {len(chapters)} 章")
         print(f"处理时间: {processing_time:.1f} 秒")
-        print("功能: 支持全文搜索 + 导航链接 + 章节锚点 + 字体调整 + 折叠功能")
+        print("功能: 支持全文搜索 + 导航链接 + 章节锚点 + 字体调整 + 折叠功能 + 彩色文本 + 加粗文本")
         
     except Exception as e:
         print(f"写入文件时出错: {e}")
@@ -395,7 +395,7 @@ def generate_search_html(blocks, total_chapters, original_filename):
     
     # 添加顶部链接
     nav_links.append('<a href="#top">顶部</a>')
-    navigation = ' | '.join(nav_links)
+    navigation = '|'.join(nav_links)
     
     # 内容区块
     content_blocks = []
@@ -406,12 +406,12 @@ def generate_search_html(blocks, total_chapters, original_filename):
             block_html = f'''
 <div class="block" id="block-{letter}">
     <h2 class="block-title" onclick="toggleBlock('{letter}')">
-        <span class="block-letter">{letter}</span>
-        <span class="block-range">第{section_chapters[0][0]}-第{section_chapters[-1][0]}章</span>
-        <span class="block-count">(共{len(section_chapters)}章)</span>
+        <span class="block-letter rainbow-text">{letter}</span>
+        <span class="block-range gradient-text">第{section_chapters[0][0]}-第{section_chapters[-1][0]}章</span>
+        <span class="block-count color-text-3">(共{len(section_chapters)}章)</span>
         <span class="block-controls">
-            <span class="fold-icon" id="icon-{letter}">▼</span>
-            <a href="#top" class="top-link">↑顶部</a>
+            <span class="fold-icon color-text-4" id="icon-{letter}">▼</span>
+            <a href="#top" class="top-link color-text-5">↑顶部</a>
         </span>
     </h2>
     <div class="block-content" id="content-{letter}">'''
@@ -423,20 +423,22 @@ def generate_search_html(blocks, total_chapters, original_filename):
                 
                 block_html += f'''
     <div class="chapter" id="{chapter_anchor}">
-        <h3 class="chapter-header" onclick="toggleChapter('{letter}-{chap_num}')">
-            <span class="chapter-title">{escape_html(chap_title)}</span>
+        <h5 class="chapter-header" onclick="toggleChapter('{letter}-{chap_num}')">
+            <span class="chapter-title color-text-1">{escape_html(chap_title)}</span>
             <span class="chapter-links">
-                <span class="fold-icon" id="chapter-icon-{letter}-{chap_num}">▼</span>
-                <a href="#{chapter_anchor}" class="anchor-link" title="章节链接">#</a>
-                <a href="#top" class="top-link">↑</a>
+                <span class="fold-icon color-text-4" id="chapter-icon-{letter}-{chap_num}">▼</span>
+                <a href="#{chapter_anchor}" class="anchor-link color-text-2" title="章节链接">#</a>
+                <a href="#top" class="top-link color-text-5">↑</a>
             </span>
-        </h3>
+        </h5>
         <div class="chapter-text" id="chapter-content-{letter}-{chap_num}">'''
                 
                 for i, para in enumerate(paragraphs):
                     para_id = f'p_{letter}_{chap_num}_{i}'
                     escaped_para = escape_html(para)
-                    block_html += f'<p id="{para_id}" data-original="{escaped_para}">{para}</p>'
+                    # 为段落添加随机颜色类
+                    color_class = f'color-text-{(i % 6) + 1}'
+                    block_html += f'<p id="{para_id}" class="{color_class}" data-original="{escaped_para}">{para}</p>'
                 
                 block_html += '''
         </div>
@@ -456,25 +458,25 @@ def generate_search_html(blocks, total_chapters, original_filename):
         content_html = '''
 <div class="block" id="block-default">
     <h2 class="block-title" onclick="toggleBlock('default')">
-        <span class="block-letter">全</span>
-        <span class="block-range">全文内容</span>
+        <span class="block-letter rainbow-text">全</span>
+        <span class="block-range gradient-text">全文内容</span>
         <span class="block-controls">
-            <span class="fold-icon" id="icon-default">▼</span>
-            <a href="#top" class="top-link">↑顶部</a>
+            <span class="fold-icon color-text-4" id="icon-default">▼</span>
+            <a href="#top" class="top-link color-text-5">↑顶部</a>
         </span>
     </h2>
     <div class="block-content" id="content-default">
         <div class="chapter" id="chap-1">
-            <h3 class="chapter-header" onclick="toggleChapter('default-1')">
-                <span class="chapter-title">全文内容</span>
+            <h5 class="chapter-header" onclick="toggleChapter('default-1')">
+                <span class="chapter-title color-text-1">全文内容</span>
                 <span class="chapter-links">
-                    <span class="fold-icon" id="chapter-icon-default-1">▼</span>
-                    <a href="#chap-1" class="anchor-link" title="章节链接">#</a>
-                    <a href="#top" class="top-link">↑</a>
+                    <span class="fold-icon color-text-4" id="chapter-icon-default-1">▼</span>
+                    <a href="#chap-1" class="anchor-link color-text-2" title="章节链接">#</a>
+                    <a href="#top" class="top-link color-text-5">↑</a>
                 </span>
-            </h3>
+            </h5>
             <div class="chapter-text" id="chapter-content-default-1">
-                <p>文件内容加载成功，请使用搜索功能查找特定内容。</p>
+                <p class="color-text-3">文件内容加载成功，请使用搜索功能查找特定内容。</p>
             </div>
         </div>
     </div>
@@ -499,26 +501,59 @@ body {{
     line-height: 1.6;
     color: #333;
     background: #f8f9fa;
-    font-size: 16px; /* 默认字体大小 */
+    font-size: 26px; /* 默认字体大小 */
     transition: font-size 0.3s ease;
 }}
 
 /* 字体大小类 */
 .font-small {{
-    font-size: 14px !important;
+    font-size: 20px !important;
 }}
 
 .font-normal {{
-    font-size: 16px !important;
+    font-size: 24px !important;
 }}
 
 .font-large {{
-    font-size: 18px !important;
+    font-size: 30px !important;
 }}
 
 .font-xlarge {{
-    font-size: 20px !important;
+    font-size: 34px !important;
 }}
+
+/* 加粗文本类 */
+.text-bold {{
+    font-weight: bold !important;
+}}
+
+.text-normal {{
+    font-weight: normal !important;
+}}
+
+/* 彩色文本系统 */
+.rainbow-text {{
+    background: linear-gradient(45deg, #FF6B6B, #4ECDC4, #45B7D1, #96CEB4, #FFEAA7, #DDA0DD);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+}}
+
+.gradient-text {{
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+}}
+
+.color-text-1 {{ color: #E74C3C !important; }} /* 红色 */
+.color-text-2 {{ color: #2980B9 !important; }} /* 蓝色 */
+.color-text-3 {{ color: #27AE60 !important; }} /* 绿色 */
+.color-text-4 {{ color: #8E44AD !important; }} /* 紫色 */
+.color-text-5 {{ color: #E67E22 !important; }} /* 橙色 */
+.color-text-6 {{ color: #16A085 !important; }} /* 青色 */
 
 /* 高亮样式 */
 .mark {{
@@ -529,61 +564,77 @@ body {{
     box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }}
 
-/* 顶部导航 */
+/* 顶部导航 - 单行紧凑设计 */
 .header {{
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 20px;
+    padding: 6px 15px; /* 进一步减少内边距 */
     position: sticky;
     top: 0;
     z-index: 1000;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    min-height: 26px; /* 40进一步缩小高度 */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
 }}
 
-.header h1 {{
-    margin: 0 0 10px 0;
-    font-size: 24px;
-    text-align: center;
+.header-title {{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
 }}
 
-.header .subtitle {{
-    margin: 0;
+.header-icon {{
+    font-size: 18px;
+}}
+
+.header-text {{
+    font-size: 12px; /* 16缩小字体 */
+    white-space: nowrap;
+}}
+
+.header-subtitle {{
+    font-size: 12px; /* 缩小字体 */
     opacity: 0.9;
-    font-size: 14px;
-    text-align: center;
+    white-space: nowrap;
 }}
 
-/* 控制栏 */
+/* 控制栏 - 进一步缩小 */
 .control-bar {{
     background: white;
-    padding: 15px 25px;
+    padding: 5px 15px; /* 进一步减少内边距 */
     border-bottom: 1px solid #e1e1e1;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 8px; /* 减少间距 */
+    min-height: 25px; /* 35进一步缩小高度 */
 }}
 
 .control-group {{
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px; /* 减少间距 */
 }}
 
 .control-label {{
     font-weight: bold;
     color: #666;
+    font-size: 12px; /* 缩小字体 */
 }}
 
 .control-btn {{
     background: #667eea;
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
+    padding: 4px 8px; /* 进一步减少内边距 */
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 11px; /* 缩小字体 */
     transition: all 0.3s;
 }}
 
@@ -598,16 +649,16 @@ body {{
 
 .font-controls {{
     display: flex;
-    gap: 5px;
+    gap: 2px; /* 减少间距 */
 }}
 
 .font-btn {{
     background: #f0f0f0;
-    border: 2px solid #ddd;
-    padding: 6px 12px;
-    border-radius: 4px;
+    border: 1px solid #ddd;
+    padding: 3px 6px; /* 进一步减少内边距 */
+    border-radius: 2px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 10px; /* 缩小字体 */
     transition: all 0.3s;
 }}
 
@@ -621,23 +672,50 @@ body {{
     border-color: #667eea;
 }}
 
-/* 主导航 */
+.bold-controls {{
+    display: flex;
+    gap: 2px;
+}}
+
+.bold-btn {{
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    padding: 3px 8px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 10px;
+    transition: all 0.3s;
+}}
+
+.bold-btn:hover {{
+    background: #e0e0e0;
+}}
+
+.bold-btn.active {{
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}}
+
+/* 主导航 - 进一步缩小 */
 .main-nav {{
     background: rgba(255,255,255,0.1);
-    padding: 15px;
-    margin: 15px -20px -20px -20px;
+    padding: 2px 6px; /* 4 10进一步减少内边距 */
+    margin: 4px -15px -6px -15px; /* 调整外边距 */
     backdrop-filter: blur(10px);
     text-align: center;
+    min-height: 15px; /* 25进一步缩小高度 */
 }}
 
 .main-nav a {{
     color: white;
     text-decoration: none;
-    margin: 0 8px;
-    padding: 5px 10px;
-    border-radius: 4px;
+    margin: 0 3px; /* 减少间距 */
+    padding: 2px 3px; /* 2 6进一步减少内边距 */
+    border-radius: 2px;
     transition: background 0.3s;
     display: inline-block;
+    font-size: 11px; /* 缩小字体 */
 }}
 
 .main-nav a:hover {{
@@ -645,12 +723,13 @@ body {{
     transform: translateY(-1px);
 }}
 
-/* 搜索框 */
+/* 搜索框 - 进一步缩小 */
 .search-box {{
     background: white;
-    padding: 25px;
+    padding: 6px 14px; /* 10 20进一步减少内边距 */
     border-bottom: 1px solid #e1e1e1;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    min-height: 35px; /* 55进一步缩小高度 */
 }}
 
 .search-container {{
@@ -660,10 +739,10 @@ body {{
 
 .search-box input {{
     width: 100%;
-    padding: 15px 20px;
-    font-size: 16px;
+    padding: 8px 15px; /* 进一步减少内边距 */
+    font-size: 14px; /* 缩小字体 */
     border: 2px solid #e1e1e1;
-    border-radius: 25px;
+    border-radius: 18px; /* 减小圆角 */
     outline: none;
     transition: all 0.3s;
 }}
@@ -674,45 +753,47 @@ body {{
 }}
 
 .search-stats {{
-    margin-top: 15px;
-    padding: 12px 20px;
+    margin-top: 8px; /* 减少上边距 */
+    padding: 6px 12px; /* 减少内边距 */
     background: #4caf50;
     color: white;
-    border-radius: 8px;
+    border-radius: 4px; /* 减小圆角 */
     display: none;
     text-align: center;
+    font-size: 12px; /* 缩小字体 */
 }}
 
 .search-stats.error {{
     background: #f44336;
 }}
 
-/* 区块样式 */
+/* 区块样式 - 进一步缩小 */
 .block {{
-    margin: 25px;
+    margin: 10px; /* 减少外边距 */
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+    border-radius: 6px; /* 减小圆角 */
+    box-shadow: 0 1px 5px rgba(0,0,0,0.1); /* 减小阴影 */
     overflow: hidden;
     transition: transform 0.2s;
 }}
 
 .block:hover {{
-    transform: translateY(-2px);
+    transform: translateY(-1px);
 }}
 
 .block-title {{
     background: linear-gradient(135deg, #ff6b35, #f7931e);
     color: white;
-    padding: 20px;
+    padding: 4px 8px; /* 8 12进一步减少内边距 */
     margin: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 6px; /* 减少间距 */
     cursor: pointer;
     transition: background 0.3s;
+    min-height: 26px; /* 40进一步缩小高度 */
 }}
 
 .block-title:hover {{
@@ -720,33 +801,34 @@ body {{
 }}
 
 .block-letter {{
-    font-size: 28px;
+    font-size: 14px; /* 18缩小字体 */
     font-weight: bold;
     background: rgba(255,255,255,0.2);
-    padding: 8px 16px;
-    border-radius: 8px;
-    min-width: 50px;
+    padding: 4px 8px; /* 减少内边距 */
+    border-radius: 4px; /* 减小圆角 */
+    min-width: 22px; /* 30减小最小宽度 */
     text-align: center;
 }}
 
 .block-range {{
-    font-size: 18px;
+    font-size: 14px; /* 缩小字体 */
     font-weight: bold;
     flex-grow: 1;
 }}
 
 .block-count {{
     opacity: 0.9;
+    font-size: 12px; /* 缩小字体 */
 }}
 
 .block-controls {{
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px; /* 减少间距 */
 }}
 
 .fold-icon {{
-    font-size: 14px;
+    font-size: 10px; /* 缩小字体 */
     transition: transform 0.3s;
     cursor: pointer;
     user-select: none;
@@ -759,10 +841,10 @@ body {{
 .top-link {{
     color: white;
     text-decoration: none;
-    padding: 6px 12px;
+    padding: 3px 6px; /* 减少内边距 */
     background: rgba(255,255,255,0.2);
-    border-radius: 6px;
-    font-size: 14px;
+    border-radius: 3px; /* 减小圆角 */
+    font-size: 10px; /* 缩小字体 */
     transition: background 0.3s;
 }}
 
@@ -780,7 +862,7 @@ body {{
     overflow: hidden;
 }}
 
-/* 章节样式 */
+/* 章节样式 - 进一步缩小 */
 .chapter {{
     border-bottom: 1px solid #f0f0f0;
     transition: background-color 0.3s;
@@ -792,18 +874,19 @@ body {{
 
 .chapter-header {{
     color: #d4380d;
-    font-size: 20px;
+    font-size: 16px; /* 缩小字体 */
     font-weight: bold;
     margin: 0;
-    padding: 20px;
-    border-bottom: 3px solid #ff6b35;
+    padding: 10px 15px; /* 进一步减少内边距 */
+    border-bottom: 1px solid #ff6b35; /* 减小边框 */
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 6px; /* 减少间距 */
     cursor: pointer;
     transition: background 0.3s;
+    min-height: 26px; /* 40进一步缩小高度 */
 }}
 
 .chapter-header:hover {{
@@ -817,39 +900,41 @@ body {{
 .chapter-links {{
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px; /* 减少间距 */
 }}
 
 .chapter-text {{
-    padding: 0 25px;
+    padding: 0 15px; /* 减少内边距 */
     transition: max-height 0.3s ease;
     overflow: hidden;
 }}
 
 .chapter-text.collapsed {{
     max-height: 0;
-    padding: 0 25px;
+    padding: 0 15px;
 }}
 
 .chapter-text p {{
-    margin-bottom: 18px;
+    margin-bottom: 8px; /* 减少下边距 */
     text-align: justify;
     text-indent: 2em;
-    line-height: 1.8;
+    line-height: 1.5; /* 减小行高 */
     font-size: inherit;
+    padding: 1px 0; /* 添加小内边距 */
 }}
 
 /* 响应式设计 */
 @media (max-width: 768px) {{
     .block {{
-        margin: 10px;
+        margin: 5px;
     }}
     
     .chapter-header {{
-        font-size: 18px;
+        font-size: 14px;
         flex-direction: column;
         align-items: flex-start;
-        padding: 15px;
+        padding: 8px 12px;
+        min-height: 25px;
     }}
     
     .chapter-links {{
@@ -857,38 +942,66 @@ body {{
     }}
     
     .main-nav {{
-        padding: 10px;
+        padding: 3px 8px;
+        min-height: 16px; /*30?*/
     }}
     
     .main-nav a {{
-        margin: 2px;
-        padding: 4px 8px;
-        font-size: 14px;
+        margin: 1px;
+        padding: 1px 4px;
+        font-size: 6px; /*9*/
     }}
     
     .block-title {{
         flex-direction: column;
-        gap: 10px;
+        gap: 4px;
         text-align: center;
-        padding: 15px;
+        padding: 6px 10px;
+        min-height: 25px;
     }}
     
     .control-bar {{
         flex-direction: column;
         align-items: stretch;
-        gap: 10px;
+        gap: 4px;
+        padding: 4px 12px;
+        min-height: 14px; /*30*/
     }}
     
     .control-group {{
         justify-content: center;
+    }}
+    
+    .header {{
+        padding: 4px 12px;
+        min-height: 25px;
+        flex-direction: column;
+        gap: 2px;
+    }}
+    
+    .header-title {{
+        flex-direction: column;
+        gap: 2px;
+        text-align: center;
+    }}
+    
+    .header-text {{
+        font-size: 10px; /*14*/
+    }}
+    
+    .search-box {{
+        padding: 8px 15px;
+        min-height: 25px;
     }}
 }}
 </style>
 </head>
 <body>
 <div class="header" id="top">
-    <h1>📚 全文搜索版</h1>
-    <div class="subtitle">{escape_html(original_filename)} | 总章节: {total_chapters} 章</div>
+    <div class="header-title">
+        <span class="header-icon">📚</span>
+        <span class="header-text">【全文搜索版】 {escape_html(original_filename)} | 总章节: {total_chapters} 章</span>
+    </div>
     <div class="main-nav">
         {navigation}
     </div>
@@ -896,7 +1009,7 @@ body {{
 
 <div class="control-bar">
     <div class="control-group">
-        <span class="control-label">字体大小:</span>
+        <span class="control-label">字体:</span>
         <div class="font-controls">
             <button class="font-btn" onclick="setFontSize('small')">小</button>
             <button class="font-btn active" onclick="setFontSize('normal')">中</button>
@@ -905,7 +1018,14 @@ body {{
         </div>
     </div>
     <div class="control-group">
-        <span class="control-label">折叠控制:</span>
+        <span class="control-label">加粗:</span>
+        <div class="bold-controls">
+            <button class="bold-btn active" onclick="setBoldText('normal')">正常</button>
+            <button class="bold-btn" onclick="setBoldText('bold')">加粗</button>
+        </div>
+    </div>
+    <div class="control-group">
+        <span class="control-label">折叠:</span>
         <button class="control-btn" onclick="expandAll()">展开所有</button>
         <button class="control-btn" onclick="collapseAll()">折叠所有</button>
         <button class="control-btn" onclick="toggleAllBlocks()">切换区块</button>
@@ -926,6 +1046,7 @@ body {{
 <script>
 // 字体大小控制
 let currentFontSize = 'normal';
+let currentBoldText = 'normal';
 
 function setFontSize(size) {{
     // 移除所有字体类
@@ -936,6 +1057,21 @@ function setFontSize(size) {{
     
     // 更新按钮状态
     document.querySelectorAll('.font-btn').forEach(btn => {{
+        btn.classList.remove('active');
+    }});
+    event.target.classList.add('active');
+}}
+
+// 加粗文本控制
+function setBoldText(style) {{
+    // 移除所有加粗类
+    document.body.classList.remove('text-bold', 'text-normal');
+    // 添加新加粗类
+    document.body.classList.add(`text-${{style}}`);
+    currentBoldText = style;
+    
+    // 更新按钮状态
+    document.querySelectorAll('.bold-btn').forEach(btn => {{
         btn.classList.remove('active');
     }});
     event.target.classList.add('active');
