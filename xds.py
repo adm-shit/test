@@ -393,9 +393,9 @@ def generate_search_html(blocks, total_chapters, original_filename):
             last_chap = blocks[letter][-1][0]
             nav_links.append(f'<a href="#block-{letter}" title="第{first_chap}-{last_chap}章">{letter}</a>')
     
-    # 添加顶部链接
+    # 添加顶部链接 | ->.
     nav_links.append('<a href="#top">顶部</a>')
-    navigation = ' | '.join(nav_links)
+    navigation = '.'.join(nav_links) 
     
     # 内容区块
     content_blocks = []
@@ -423,14 +423,14 @@ def generate_search_html(blocks, total_chapters, original_filename):
                 
                 block_html += f'''
     <div class="chapter" id="{chapter_anchor}">
-        <h3 class="chapter-header" onclick="toggleChapter('{letter}-{chap_num}')">
+        <h6 class="chapter-header" onclick="toggleChapter('{letter}-{chap_num}')">
             <span class="chapter-title color-text-1">{escape_html(chap_title)}</span>
             <span class="chapter-links">
                 <span class="fold-icon color-text-4" id="chapter-icon-{letter}-{chap_num}">▼</span>
                 <a href="#{chapter_anchor}" class="anchor-link color-text-2" title="章节链接">#</a>
                 <a href="#top" class="top-link color-text-5">↑</a>
             </span>
-        </h3>
+        </h6>
         <div class="chapter-text" id="chapter-content-{letter}-{chap_num}">'''
                 
                 for i, para in enumerate(paragraphs):
@@ -467,14 +467,14 @@ def generate_search_html(blocks, total_chapters, original_filename):
     </h2>
     <div class="block-content" id="content-default">
         <div class="chapter" id="chap-1">
-            <h3 class="chapter-header" onclick="toggleChapter('default-1')">
+            <h6 class="chapter-header" onclick="toggleChapter('default-1')">
                 <span class="chapter-title color-text-1">全文内容</span>
                 <span class="chapter-links">
                     <span class="fold-icon color-text-4" id="chapter-icon-default-1">▼</span>
                     <a href="#chap-1" class="anchor-link color-text-2" title="章节链接">#</a>
                     <a href="#top" class="top-link color-text-5">↑</a>
                 </span>
-            </h3>
+            </h6>
             <div class="chapter-text" id="chapter-content-default-1">
                 <p class="color-text-3">文件内容加载成功，请使用搜索功能查找特定内容。</p>
             </div>
@@ -501,25 +501,25 @@ body {{
     line-height: 1.6;
     color: #333;
     background: #f8f9fa;
-    font-size: 16px; /* 默认字体大小 */
+    font-size: 29px; /* 26默认字体大小 */
     transition: font-size 0.3s ease;
 }}
 
 /* 字体大小类 */
 .font-small {{
-    font-size: 14px !important;
+    font-size: 20px !important;
 }}
 
 .font-normal {{
-    font-size: 16px !important;
+    font-size: 28px !important;
 }}
 
 .font-large {{
-    font-size: 18px !important;
+    font-size: 34px !important;
 }}
 
 .font-xlarge {{
-    font-size: 20px !important;
+    font-size: 38px !important;
 }}
 
 /* 加粗文本类 */
@@ -557,23 +557,23 @@ body {{
 
 /* 高亮样式 */
 .mark {{
-    background: #ffeb3b !important;
+    background: grey !important;
     color: #000 !important;
     padding: 2px 4px;
     border-radius: 3px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }}
 
-/* 顶部导航 - 单行紧凑设计 */
+/* 顶部导航 - 单行紧凑设计#ffeb3b */
 .header {{
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, grey 0%, grey 100%);
     color: white;
-    padding: 6px 15px; /* 进一步减少内边距 */
+    padding: 2px 11px; /* 6 15进一步减少内边距#667eea  #764ba2*/
     position: sticky;
     top: 0;
     z-index: 1000;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    min-height: 40px; /* 进一步缩小高度 */
+    min-height: 16px; /* 40进一步缩小高度 */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -588,11 +588,11 @@ body {{
 }}
 
 .header-icon {{
-    font-size: 18px;
+    font-size: 12px;  /* 18缩小字体 */
 }}
 
 .header-text {{
-    font-size: 16px; /* 缩小字体 */
+    font-size: 12px; /* 16缩小字体 */
     white-space: nowrap;
 }}
 
@@ -612,7 +612,7 @@ body {{
     align-items: center;
     flex-wrap: wrap;
     gap: 8px; /* 减少间距 */
-    min-height: 35px; /* 进一步缩小高度 */
+    min-height: 15px; /* 35进一步缩小高度 */
 }}
 
 .control-group {{
@@ -634,12 +634,12 @@ body {{
     padding: 4px 8px; /* 进一步减少内边距 */
     border-radius: 3px;
     cursor: pointer;
-    font-size: 11px; /* 缩小字体 */
+    font-size: 11px; /* 缩小字体 #5a6fd8*/
     transition: all 0.3s;
 }}
 
 .control-btn:hover {{
-    background: #5a6fd8;
+    background: grey;
     transform: translateY(-1px);
 }}
 
@@ -700,18 +700,18 @@ body {{
 /* 主导航 - 进一步缩小 */
 .main-nav {{
     background: rgba(255,255,255,0.1);
-    padding: 4px 10px; /* 进一步减少内边距 */
-    margin: 4px -15px -6px -15px; /* 调整外边距 */
+    padding: 2px 4px; /* 4 10进一步减少内边距 */
+    margin: 4px -11px -6px -11px; /* 15调整外边距 */
     backdrop-filter: blur(10px);
     text-align: center;
-    min-height: 25px; /* 进一步缩小高度 */
+    min-height: 11px; /* 25进一步缩小高度 */
 }}
 
 .main-nav a {{
     color: white;
     text-decoration: none;
     margin: 0 3px; /* 减少间距 */
-    padding: 2px 6px; /* 进一步减少内边距 */
+    padding: 2px 3px; /* 2 6进一步减少内边距 */
     border-radius: 2px;
     transition: background 0.3s;
     display: inline-block;
@@ -726,10 +726,10 @@ body {{
 /* 搜索框 - 进一步缩小 */
 .search-box {{
     background: white;
-    padding: 10px 20px; /* 进一步减少内边距 */
+    padding: 6px 14px; /* 10 20进一步减少内边距 */
     border-bottom: 1px solid #e1e1e1;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    min-height: 55px; /* 进一步缩小高度 */
+    min-height: 35px; /* 55进一步缩小高度 */
 }}
 
 .search-container {{
@@ -782,9 +782,9 @@ body {{
 }}
 
 .block-title {{
-    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    background: linear-gradient(135deg, #f8edeb, #f7931e);
     color: white;
-    padding: 8px 12px; /* 进一步减少内边距 */
+    padding: 4px 8px; /*#ff6b35/f8!! 8 12进一步减少内边距 */
     margin: 0;
     display: flex;
     align-items: center;
@@ -793,7 +793,7 @@ body {{
     gap: 6px; /* 减少间距 */
     cursor: pointer;
     transition: background 0.3s;
-    min-height: 40px; /* 进一步缩小高度 */
+    min-height: 26px; /* 40进一步缩小高度 */
 }}
 
 .block-title:hover {{
@@ -801,12 +801,12 @@ body {{
 }}
 
 .block-letter {{
-    font-size: 18px; /* 缩小字体 */
+    font-size: 14px; /* 18缩小字体 */
     font-weight: bold;
     background: rgba(255,255,255,0.2);
     padding: 4px 8px; /* 减少内边距 */
     border-radius: 4px; /* 减小圆角 */
-    min-width: 30px; /* 减小最小宽度 */
+    min-width: 22px; /* 30减小最小宽度 */
     text-align: center;
 }}
 
@@ -873,12 +873,12 @@ body {{
 }}
 
 .chapter-header {{
-    color: #d4380d;
-    font-size: 16px; /* 缩小字体 */
+    color: grey;
+    font-size: 16px; /* #d4380d缩小字体 */
     font-weight: bold;
     margin: 0;
     padding: 10px 15px; /* 进一步减少内边距 */
-    border-bottom: 1px solid #ff6b35; /* 减小边框 */
+    border-bottom: 1px solid grey; /* #ff6b35减小边框 */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -886,11 +886,11 @@ body {{
     gap: 6px; /* 减少间距 */
     cursor: pointer;
     transition: background 0.3s;
-    min-height: 40px; /* 进一步缩小高度 */
+    min-height: 26px; /* 40进一步缩小高度 */
 }}
 
 .chapter-header:hover {{
-    background: #fff8f0;
+    background: grey; /* #fff8f0;* /
 }}
 
 .chapter-title {{
@@ -934,7 +934,7 @@ body {{
         flex-direction: column;
         align-items: flex-start;
         padding: 8px 12px;
-        min-height: 35px;
+        min-height: 25px;
     }}
     
     .chapter-links {{
@@ -943,13 +943,13 @@ body {{
     
     .main-nav {{
         padding: 3px 8px;
-        min-height: 20px;
+        min-height: 16px; /*30?*/
     }}
     
     .main-nav a {{
         margin: 1px;
         padding: 1px 4px;
-        font-size: 9px;
+        font-size: 6px; /*9*/
     }}
     
     .block-title {{
@@ -957,7 +957,7 @@ body {{
         gap: 4px;
         text-align: center;
         padding: 6px 10px;
-        min-height: 35px;
+        min-height: 25px;
     }}
     
     .control-bar {{
@@ -965,7 +965,7 @@ body {{
         align-items: stretch;
         gap: 4px;
         padding: 4px 12px;
-        min-height: 30px;
+        min-height: 14px; /*30*/
     }}
     
     .control-group {{
@@ -974,7 +974,7 @@ body {{
     
     .header {{
         padding: 4px 12px;
-        min-height: 35px;
+        min-height: 25px;
         flex-direction: column;
         gap: 2px;
     }}
@@ -986,22 +986,22 @@ body {{
     }}
     
     .header-text {{
-        font-size: 14px;
+        font-size: 10px; /*14*/
     }}
     
     .search-box {{
         padding: 8px 15px;
-        min-height: 45px;
+        min-height: 25px;
     }}
 }}
 </style>
 </head>
 <body>
 <div class="header" id="top">
-    <div class="header-title">
-        <span class="header-icon">📚</span>
-        <span class="header-text">【全文搜索版】 {escape_html(original_filename)} | 总章节: {total_chapters} 章</span>
-    </div>
+    <!div class="header-title">
+        <!span class="header-icon" /span>
+        <!span class="header-text"Rt【全文搜索版】 {escape_html(original_filename)} | 总章节: {total_chapters} 章 /span>
+    <!/div>
     <div class="main-nav">
         {navigation}
     </div>
@@ -1353,38 +1353,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-/*进一步缩小高度（约1/3）
-    顶部导航：40px → 35px
-    控制栏：35px → 30px
-    搜索框：55px → 45px
-    区块标题：40px → 35px
-    章节标题：40px → 35px
-
-3. 加粗文本功能
-    新增"加粗"控制按钮
-    支持"正常"和"加粗"切换
-    应用到所有文本内容
-
-4. 用户颜色选择
-    保留6种彩色文本系统
-    用户可通过CSS类名选择颜色
-    段落轮换颜色显示
-🎨 使用场景
-确实可以完全替代阅读应用！这个工具特别适合：
-    大型小说文件：411MB+的HTML文件轻松处理
-    学术文献：快速搜索和导航大量内容
-    技术文档：结构化展示和快速查找
-    个人知识库：建立可搜索的文档系统
-
-现在界面更加紧凑，功能更全面，用户体验更佳！
-
-utf-8: 质量得分 0.00
-gbk: 质量得分 0.77
-gb2312: 质量得分 0.45
-gb18030: 质量得分 0.77
-big5: 质量得分 0.13
-latin1: cp1252: 质量得分 0.00
-文件读取完成，总长度: 302912 字符
-模式 '第[零一二三四五六七八九十百千\d]+章...' 找到 104 个匹配
-模式 '第\d+章[^\n<]*...' 找到 103 个匹配
-去重后找到 104 个唯一章节..*/
