@@ -1,0 +1,67 @@
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Portable Prompter</title>
+<style>
+body{background:black;margin:0;padding:0;font-family:Helvetica,Arial;color:white}
+.container{width:100%;height:100%;overflow:auto}
+.prompter,#reference{display:block;font-size:25px;font-family:Helvetica,Arial;text-transform:uppercase;font-weight:bold;color:#FFF;background:black;margin-left:50px}
+#textentry{font-family:Helvetica,Arial;font-size:12px;color:white;background:#555;padding:5px;width:700px}
+#textentry textarea{border:0;padding:5px;width:100%}
+#textentry fieldset{background:#333;border:2px solid white;padding:6px;margin-top:5px}
+.counter{font-family:Helvetica,Arial;color:white;font-size:35px;font-weight:bold;background:#c0caca;text-align:center}
+.gButton{font-family:Helvetica,Arial;color:black;font-size:25px;font-weight:bold;background:#c0caca;border-radius:10px}
+#controller{height:80px;bottom:0;position:fixed;border-top:1px dashed grey;width:100%;z-index:999;background:black}
+#controller a{text-decoration:none;font-family:Helvetica,Arial;font-size:14px;font-weight:bold;color:white;padding:5px}
+table{height:40px}tr{height:40px}td{min-width:48px;text-align:center;border:2px solid #888;background:#c0caca;width:48px;height:32px;border-radius:10px}
+.hl{color:#FFFC40}.pause{color:#444}
+</style>
+<script>
+var $=function(a){return document.getElementById(a)};var PROMPT_STOPPED=0;var PROMPT_PLAYING=1;var promptState=PROMPT_STOPPED;var lastTop=0;var pauseCounter=0;var speed=1;var fsize=26;var ftimer=0;var timerID=0;var externControllerWindow=null;
+function getSelection(a){var c=[a.value,"","",""];if(document.selection){var d="#$%^%$#";var b=document.selection.createRange();if(b.parentElement()!=a){return null}c[2]=b.text;b.text=d;fb=a.value.split(d);b.moveStart("character",-d.length);b.text=c[2];c[1]=fb[0];c[3]=fb[1]}else{if(a.selectionStart==a.selectionEnd){return null}c=(new RegExp("([\\x00-\\xff]{"+a.selectionStart+"})([\\x00-\\xff]{"+(a.selectionEnd-a.selectionStart)+"})([\\x00-\\xff]*)")).exec(a.value)}return c}
+function addPTag(b,a){bits=getSelection(b);if(bits){b.value=bits[1]+"["+a+"]"+bits[2]+"[/"+a+"]"+bits[3]}}
+var PromptController=function(){this.skipspeed=60;this.rolling=false;this.rolldirection=1;this.paused=false;this.actualspeed=speed;this.reachedEnd=false;var d=null;var a=null;var c=null;var b=null;this.init=function(){this.updateSpeedLabel();this.updateFontSize();this.setPlayButton();d=$("container");c=$("prompter");b=$("reference")};this.setSpeed=function(f){this.actualspeed=f;speed=f;this.updateSpeedLabel()};this.setFontSize=function(f){c.style.fontSize=f;b.style.fontSize=f;this.updateFontSize()};this.start=function(f){a=$("endmarker");promptState=PROMPT_PLAYING;if(!f){this.reset()}clearInterval(timerID);that=this;this.setPlayButton();timerID=setInterval("that.stepDown()",30)};this.stop=function(){clearInterval(timerID);promptState=PROMPT_STOPPED;this.setPlayButton()};this.reset=function(){this.stop();lastTop=0;pauseCounter=0;d.scrollTop=0;this.reachedEnd=0;this.setPlayButton()};var e=0;this.stepDown=function(){var g=0.67;if(this.rolling){speed=this.skipspeed*this.rolldirection}else{if(this.paused){speed=0;g=0}else{speed=this.actualspeed}}if(lastTop<-1){lastTop=0}lastTop=lastTop+(speed/3+g);d.scrollTop=lastTop;if(e==d.scrollTop&&!this.paused){this.reachedEnd=true;lastTop=d.scrollTop;this.stop()}else{e=d.scrollTop;var f=$("pause"+pauseCounter);if(f!=null){if(f.offsetTop<=lastTop){this.pause(1000)}}}};this.pause=function(f){that=this;pauseCounter++;this.paused=true;setTimeout("that.resume()",f)};this.resume=function(){lastTop=lastTop+1;this.paused=false};this.setPlayButton=function(){var j=$("play");var g="&#x2161;";var f="&#x25BA;";if(promptState==PROMPT_PLAYING){j.innerHTML=g}else{j.innerHTML=f}};this.toggle=function(){this.togglePlay();this.setPlayButton()};this.togglePlay=function(){if(promptState==PROMPT_PLAYING){this.stop()}else{this.start(true)}};this.rollBack=function(f){this.start(true);this.rolling=f;this.rolldirection=-1;this.reachedEnd=false};this.rollFwd=function(f){if(!this.reachedEnd){this.start(true);this.rolling=f;this.rolldirection=1}};this.speedUp=function(){if(!this.paused){speed+=1;this.actualspeed=speed;this.updateSpeedLabel()}};this.speedDown=function(){if(!this.paused){speed=(speed>2)?--speed:1;this.actualspeed=speed;this.updateSpeedLabel()}};this.updateSpeedLabel=function(){$("currentspeed").innerHTML=speed};this.updateFontSize=function(){$("currentfont").innerHTML=fsize};this.fontstop=function(){clearInterval(ftimer);ftimer=0};this.fontDown=function(){fsize=fsize-1;c.style.fontSize=fsize+"px";b.style.fontSize=fsize+"px";this.updateFontSize();that=this;if(!ftimer){ftimer=setInterval("that.fontDown()",100)}};this.fontUp=function(){fsize=fsize+1;c.style.fontSize=fsize+"px";b.style.fontSize=fsize+"px";this.updateFontSize();that=this;if(!ftimer){ftimer=setInterval("that.fontUp()",100)}}};
+function escapeHTML(a){var b=a.replace(/&#38;/g,"&amp;");b=b.replace(/&(?!amp;|apos;|quot;|gt;|lt;|#\d+;)/gi,"&amp;");b=b.replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");return b}
+function formatit(){$("textentry").style.display="none";var j=escapeHTML($("promptinput").value);j=j.replace(/\n/g,"<br/>");var g=parseInt($("initialspeed").value);var d=parseInt($("initialfont").value);var a=$("initialflip").checked;Controller.setSpeed(g);Controller.setFontSize(d);Controller.reset();var e="<span class='pause' id='pause'>[pause]</span>";j=j.replace(/&lt;br \/&gt;/g,"<br/>");if(a){h=j}else{var h=j.replace(/\[pause\]/g,e);var h=h.replace(/\[hl\]/g,"<span class='hl'>");var h=h.replace(/\[\/hl\]/g,"</span>")}$("prompter").innerHTML=h;if(!a){var f=document.getElementsByClassName("pause");for(i in f){f[i].id="pause"+i}}$("controller").style.display="block";var b=$("prompter");b.style.display="none";b.style.textTransform=$("initialcap").checked?"uppercase":"none";if(a){var c=$("reference");b.style.fontFamily="'dv easyprompter sans'";c.style.fontFamily="'dv easyprompter sans'";b.style.textAlign="right";c.style.textAlign="right"}else{var c=$("reference");b.style.fontFamily="Arial, Helvetica, Verdana";c.style.fontFamily="Arial, Helvetica, Verdana";b.style.textAlign="left";c.style.textAlign="left"}b.style.display="block";startmsg="[Hit Play to start]";endmsg="[END]";if(a){startmsg=startmsg.split("").reverse().join("");endmsg=endmsg.split("").reverse().join("")}b.innerHTML="<br/><br/>"+startmsg+"<br/><br/>"+b.innerHTML+"<span id='endmarker'><br/><br/>"+endmsg+"<br/><br/><br/></span>";$("container").style.overflow="hidden";document.body.style.padding="2px 2px 78px 2px";$("topper").style.display="none"}
+function interpretKey(b,c){var a=b||window.event;if(a.type=="keydown"){switch(a.keyCode){case 37:Controller.speedDown();break;case 39:Controller.speedUp();break;case 38:Controller.rollBack(true);break;case 40:Controller.rollFwd(true);break;case 32:Controller.toggle();break;case 27:Controller.reset();break}}else{switch(a.keyCode){case 38:Controller.rollBack(false);break;case 40:Controller.rollFwd(false);break}}}
+function wheel(a){var b=0;if(!a){a=window.event}if(a.wheelDelta){b=a.wheelDelta/120}else{if(a.detail){b=-a.detail/3}}if(b){if(b<0){Controller.speedDown()}else{Controller.speedUp()}}if(a.preventDefault){a.preventDefault()}a.returnValue=false}
+var Controller=new PromptController();var isEditing=true;
+function submitScript(a){if(a){isEditing=true;$("container").style.overflow="auto";document.body.style.padding="0";$("textentry").style.display="block";$("controller").style.display="none";$("topper").style.display="block";$("prompter").innerHTML=""}else{isEditing=false;formatit()}if(!isEditing){if(window.addEventListener){window.addEventListener("DOMMouseScroll",wheel,false)}window.onmousewheel=document.onmousewheel=wheel}else{if(window.addEventListener){window.removeEventListener("DOMMouseScroll",wheel,false)}window.onmousewheel=document.onmousewheel=null}}
+function previewText(c){var b=$("preview");b.style.display="none";b.style.textTransform=$("initialcap").checked?"uppercase":"none";b.style.fontSize=parseInt($("initialfont").value)+"px";var a=$("initialflip").checked;if(a){b.style.fontFamily="'DV EasyPrompter Sans'";b.innerHTML="txeT weiverP";b.style.textAlign="right"}else{b.style.fontFamily="Arial, Helvetica";b.innerHTML="Preview Text";b.style.textAlign="left"}b.style.display="block"}
+</script>
+</head> 
+<body onkeydown='interpretKey(event)' onkeyup='interpretKey(event)'>
+<div class='container' id='container'>
+<div id='topper'><span id='spacer'></span>Portable Prompter</div>
+<div id='textentry' name='textentry' class="info">
+<h2>Enter script:</h2><div id='textcontrols'><button onclick="addPTag($('promptinput'),'hl')"><b>Highlight</b></button></div>
+<form name='createpromptform' method='post'><textarea id='promptinput' name='promptinput' rows=20 cols=80></textarea><br/>
+<fieldset>
+<label>Starting Font Size:<input type='text' id='initialfont' name='initialfont' value='26' size=1 onchange='previewText()'/></label>
+<label>Starting Speed:<input type='text' id='initialspeed' name='initialspeed' value='1' size=1 onchange='previewText()'/></label>
+<label>Capitalize text<input type='checkbox' name='initialcap' id='initialcap' onchange='previewText()'></label>
+<label>Flip text<input type='checkbox' name='initialflip' id='initialflip' onclick='previewText(true)'/></label>
+<a href="javascript:submitScript()" class='gButton'>Start Prompter</a>
+<div id='preview'>Preview Text</div>
+</fieldset>
+</form>
+</div>
+<div id='reference' style='visibility:hidden;'>Wait</div>
+<div class='prompter' id='prompter'> </div>
+</div>
+<div id="controller">
+<table cellspacing=1><tr class='tablehead'><td colspan='4'>Jog</td><td colspan='3'>Speed</td><td>edit</td><td colspan='3'>Font</td></tr><tr>
+<td><a href="javascript:Controller.toggle()" title="Stop-[ESCAPE]" class='gButton'>l</a></td>
+<td><a href="javascript:Controller.toggle()" title="Play-[SPACE]" class='gButton' id='play'>&#x25BA;</a></td>
+<td><a href="javascript:void(0)" onmousedown="javascript:Controller.rollBack(true)" onmouseup="javascript:Controller.rollBack(false)" title="Rewind-[UP]" class='gButton'><<</a></td>
+<td><a href="javascript:void(0)" onmousedown="javascript:Controller.rollFwd(true)" onmouseup="javascript:Controller.rollFwd(false)" title="Fast Forward-[DOWN]" class='gButton'>>></a></td>
+<td><a href="javascript:Controller.speedDown()" title="Slow Down-[LEFT]" class='gButton'>-</a></td>
+<td><label class='counter' id='currentspeed'>0</label></td>
+<td><a href="javascript:Controller.speedUp()" title="Speed Up-[RIGHT]" class='gButton'>+</a></td>
+<td><a href="javascript:Controller.reset(); submitScript(1);" title="Edit Script" class='gButton' style='font-size:16px;'>ed</a></td>
+<td><a href="javascript:void(0)" onmousedown="javascript:Controller.fontDown()" onmouseup="javascript:Controller.fontstop()" class='gButton'>&#x25BC;</a></td>
+<td><label class='counter' id='currentfont'>0</label></td>
+<td><a href="javascript:void(0)" onmousedown="javascript:Controller.fontUp()" onmouseup="javascript:Controller.fontstop()" class='gButton'>&#x25B2;</a></td>
+</tr></table>
+</div>
+<script>Controller.init();previewText();</script>
+</body></html>
