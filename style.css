@@ -12,6 +12,6 @@
     border-radius: 5px; /* 圆角 */
     border-left: 4px solid #4CAF50; /* 左侧绿色装饰条 */
     line-height: 1.5; /* 行高，更易阅读 */
-    max-height: 500px; /* 限制最大高度 */
+    max-height: 580px; /* 限制最大高度 */
     overflow-y: auto; /* 内容过多时显示垂直滚动条（上下翻页） */
 }
