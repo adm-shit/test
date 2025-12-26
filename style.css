@@ -1,6 +1,6 @@
 ﻿pre {
     color: green;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: bold;
     white-space: pre-wrap;       /* 核心：自動換行 + 保留空格換行 */
     word-wrap: break-word;       /* 超長詞斷開 */
@@ -14,4 +14,5 @@
     line-height: 1.5; /* 行高，更易阅读 */
     max-height: 580px; /* 限制最大高度 */
     overflow-y: auto; /* 内容过多时显示垂直滚动条（上下翻页） */
+
 }
